@@ -1,0 +1,11 @@
+XPath interpreter for mochiweb's html tree
+See src/test.erl for examples
+
+Usage:
+    make
+    make test
+
+Note:
+    mochiweb_xpath_parser:compile_xpath/1 utilize two undocumented 
+    functions in  xmerl (xmerl_xpath_parse:parse/1 and xmerl_xpath_scan:tokens/1).
+    These functions could change between OTP versions.. I'm using R12B2
