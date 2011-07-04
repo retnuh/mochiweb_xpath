@@ -1,16 +1,17 @@
 %% 
 %% @author Pablo Polvorin 
+%% @author Hunter Kelly.
 %% created on 2008-04-30
+%% Converted to eunit on 2011-07-04
 %% 
 %% Some simple functional test cases, test the xpath implementation
--module(test).
+-module(mochiweb_xpath_tests).
 
-%Tests
--export([test/0]).
+-include_lib("eunit/include/eunit.hrl").
 
-
--define(HTML1, "html-docs/test1.html").
--define(HTML2, "html-docs/test2.html").
+-define(HTMLDIR, "../test/html-docs").
+-define(HTML1, "test1.html").
+-define(HTML2, "test2.html").
 
 
 %% [{HtmlFileName,Cases}]
@@ -57,7 +58,7 @@ test_definitions() ->
 
 
 %% @doc Functional test
-test() ->
+all_test_() ->
     Mapping = [{<<"link">>,1},{<<"myUrl">>,2}],
     % F = simple user-defined function.
     %     First argument is the current XPath context,
@@ -70,25 +71,24 @@ test() ->
     %            to the appropiate type (node_set|string|number|boolean)
     MyFuns = [{my_fun,F,[string]}],
 
-    lists:foreach(fun(Def) -> do_test(Def,MyFuns) end, test_definitions()).
+    lists:map(fun(Def) -> do_test(Def,MyFuns) end, test_definitions()).
 
 
 do_test({File,Cases},UserFunctions) ->
-    {ok,DocBin} = file:read_file(File),
+    {ok,DocBin} = file:read_file(filename:join(?HTMLDIR, File)),
     Doc = mochiweb_html:parse(DocBin),
-    io:format("----------~s------------~n",[File]),
-    lists:foreach(fun({Expr,Expected}) ->
-                R = mochiweb_xpath:execute(Expr,Doc,UserFunctions),
-                assert(Expr,R,Expected)
+    lists:map(fun({Expr,Expected}) ->
+                      R = mochiweb_xpath:execute(Expr,Doc,UserFunctions),
+                      { File ++ " " ++ Expr, ?_assertEqual(Expected, R) }
               end, Cases).
 
-assert(Expr,Result,Expected) ->
-   case Result == Expected of
-        true -> 
-            io:format("pass: ~s~n",[Expr]);
-        false -> 
-            io:format("*fail*: ~s : ~n* Result:~p Expected:~p~n",
-                        [Expr,Result,Expected])
-    end.
+%% assert(Expr,Result,Expected) ->
+%%    case Result == Expected of
+%%         true -> 
+%%             io:format("pass: ~s~n",[Expr]);
+%%         false -> 
+%%             io:format("*fail*: ~s : ~n* Result:~p Expected:~p~n",
+%%                         [Expr,Result,Expected])
+%%     end.
 
 

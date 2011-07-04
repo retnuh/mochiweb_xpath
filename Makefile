@@ -1,24 +1,20 @@
+REBAR=./rebar
 
-MODULES= ebin/mochiweb_xpath.beam \
-		 ebin/mochiweb_xpath_parser.beam \
-		 ebin/mochiweb_xpath_functions.beam \
-		 ebin/mochiweb_xpath_utils.beam \
-		 ebin/mochiweb_html.beam \
-		 ebin/test.beam \
-		 ebin/mochinum.beam \
-		 ebin/mochiweb_charref.beam 
+all:  deps compile
 
-all: compile
+deps:
+	@$(REBAR) get-deps
 
-compile: $(MODULES)
+compile:
+	@$(REBAR) compile
 
+edoc:
+	@$(REBAR) doc
 
-ebin/%.beam : src/%.erl
-	erlc -o ebin $<
+test:  all
+	@$(REBAR) skip_deps=true eunit
 
 clean:
-	rm -f ebin/*.beam erl_crash.dump
+	@$(REBAR) clean
 
-
-test: compile
-	erl -pa ebin -noshell -s test test  -s init stop
+.PHONY: test deps

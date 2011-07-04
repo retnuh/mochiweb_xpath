@@ -1,0 +1,9 @@
+%% This is generated from src/mochiweb.app.src
+{application, mochiweb_xpath,
+ [{description, "XPath parser for Mochiweb HTML"},
+  {vsn, git},
+  {modules, []},
+  {registered, []},
+  {env, []},
+  {applications, [kernel, stdlib, xmerl, mochiweb]}
+ ]}.
