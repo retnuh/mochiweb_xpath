@@ -13,7 +13,8 @@
         root,
         ctx,
         functions,
-        position
+        position,
+        size
     }).
 
 
@@ -182,9 +183,10 @@ apply_predicate({pred,{number,N}},NodeList,_Ctx) when length(NodeList) >= N ->
     [lists:nth(N,NodeList)];
 
 apply_predicate({pred,Pred},NodeList,Ctx) ->
+    Size = length(NodeList),
     Filter = fun(Node, {AccPosition, AccNodes0}) ->
             Predicate = mochiweb_xpath_utils:boolean_value(
-                execute_expr(Pred,Ctx#ctx{ctx=[Node], position=AccPosition})),
+                execute_expr(Pred,Ctx#ctx{ctx=[Node], position=AccPosition, size = Size})),
             AccNodes1 = if Predicate -> [Node|AccNodes0];
                 true -> AccNodes0
             end,
