@@ -25,7 +25,9 @@ test_definitions() ->
                 {"/html/body/form/input[@name='id3']/@value",[<<"Val3">>]},
                 {"/html/body/*/input[@name='id3']/@value",[<<"Val3">>]},
                 {"/html/head/title/text() = 'Title'",true},
-                {"/html/head[non_existent/no_existent]/title/text()",[]}
+                {"/html/head[non_existent/no_existent]/title/text()",[]},
+                {"/html/body/*/input[position() = 3]/@value",[<<"Val3">>]},
+                {"/html/body/*/input[position() > 3]/@value",[<<"Val4">>,<<"Val5">>,<<"Val6">>, "", ""]}
                 ]},
         {?HTML2,[
                 {"/html/body/div[1]/a[3]/text()",[<<"ssddd">>]},
