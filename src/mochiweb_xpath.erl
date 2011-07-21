@@ -247,7 +247,7 @@ bool_fun('and') ->
     end;
 bool_fun('or') ->
     fun(A, B) ->
-            A andalso B
+            A orelse B
     end.
 %% TODO more boolean operators
             
