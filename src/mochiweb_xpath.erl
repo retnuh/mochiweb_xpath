@@ -78,6 +78,12 @@ execute_expr({comp,Comp,A,B},Ctx) ->
     R = execute_expr(B,Ctx),
     comp(CompFun,L,R);
 
+execute_expr({bool,Comp,A,B},Ctx) ->
+    CompFun = bool_fun(Comp),
+    L = execute_expr(A,Ctx),
+    R = execute_expr(B,Ctx),
+    comp(CompFun,L,R);
+
 execute_expr({literal,L},_Ctx) ->
     [L];
 
@@ -235,8 +241,13 @@ comp_fun('>=') ->
   end.
 
 
-
-
-
-
-
+bool_fun('and') ->
+    fun(A, B) ->
+            A andalso B
+    end;
+bool_fun('or') ->
+    fun(A, B) ->
+            A andalso B
+    end.
+%% TODO more boolean operators
+            
