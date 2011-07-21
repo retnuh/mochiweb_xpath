@@ -16,6 +16,8 @@
 %% the correct arguments, given the function signature. 
 default_functions() ->
     [
+        {'last',fun last/2,[]},
+        {'position',fun position/2,[]},
         {'count',fun count/2,[node_set]},
         {'name',fun 'name'/2,[node_set]},
         {'starts-with', fun 'starts-with'/2,[string,string]},
@@ -24,6 +26,16 @@ default_functions() ->
         {'string-length', fun 'string-length'/2,[string]}
     ].
 
+
+%% @doc Function: boolean last() 
+%%      The position function returns the position of the current node
+last({ctx, _, _, _, Position, Size} = _Ctx, []) ->
+    Position =:= Size.
+
+%% @doc Function: number position() 
+%%      The position function returns the position of the current node
+position({ctx, _, _, _, Position, _} = _Ctx, []) ->
+    Position.
 
 %% @doc Function: number count(node-set) 
 %%      The count function returns the number of nodes in the 

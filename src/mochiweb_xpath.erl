@@ -12,7 +12,9 @@
 -record(ctx, {
         root,
         ctx,
-        functions
+        functions,
+        position,
+        size
     }).
 
 
@@ -62,7 +64,7 @@ execute(XPath,Doc,Functions) ->
     Funs =  lists:foldl(fun(T={Key,_Fun,_Signature},Prev) ->
                             lists:keystore(Key,1,Prev,T)
             end,mochiweb_xpath_functions:default_functions(),Functions),
-    execute_expr(XPath,#ctx{ctx=[R],root=R,functions=Funs}).
+    execute_expr(XPath,#ctx{ctx=[R],root=R,functions=Funs,position=0}).
 
 
 
@@ -187,12 +189,17 @@ apply_predicate({pred,{number,N}},NodeList,_Ctx) when length(NodeList) >= N ->
     [lists:nth(N,NodeList)];
 
 apply_predicate({pred,Pred},NodeList,Ctx) ->
-    Filter = fun(Node) ->
-                mochiweb_xpath_utils:boolean_value(
-                        execute_expr(Pred,Ctx#ctx{ctx=[Node]}))
-              end,
-    L = lists:filter(Filter,NodeList),
-    L.
+    Size = length(NodeList),
+    Filter = fun(Node, {AccPosition, AccNodes0}) ->
+            Predicate = mochiweb_xpath_utils:boolean_value(
+                execute_expr(Pred,Ctx#ctx{ctx=[Node], position=AccPosition, size = Size})),
+            AccNodes1 = if Predicate -> [Node|AccNodes0];
+                true -> AccNodes0
+            end,
+            {AccPosition+1, AccNodes1}
+    end,
+    {_, L} = lists:foldl(Filter,{1,[]},NodeList),
+    lists:reverse(L).
 
 
 %% @see http://www.w3.org/TR/1999/REC-xpath-19991116 , section 3.4 
