@@ -350,6 +350,3 @@ get_parent_position([_|ParentPosition]) ->
 %% @type Position = [non_neg_integer()]
 get_position_in_parent([MyPosition|_]) ->
     MyPosition.
-
-
-
