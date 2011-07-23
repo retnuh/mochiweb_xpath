@@ -26,6 +26,8 @@ simplify({literal,L}) ->
     {literal,list_to_binary(L)};
 simplify({number,N}) ->
     {number,N};
+simplify({bool, Comp, A, B}) ->
+    {bool, Comp, simplify(A), simplify(B)};
 simplify({function_call,Fun,Args}) ->
     {function_call,Fun,lists:map(fun simplify/1,Args)}.
 

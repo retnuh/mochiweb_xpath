@@ -82,6 +82,12 @@ execute_expr({comp,Comp,A,B},Ctx) ->
     R = execute_expr(B,Ctx),
     comp(CompFun,L,R);
 
+execute_expr({bool,Comp,A,B},Ctx) ->
+    CompFun = bool_fun(Comp),
+    L = execute_expr(A,Ctx),
+    R = execute_expr(B,Ctx),
+    comp(CompFun,L,R);
+
 execute_expr({literal,L},_Ctx) ->
     [L];
 
@@ -284,6 +290,17 @@ comp_fun('>=') ->
     mochiweb_xpath_utils:number_value(A) >= mochiweb_xpath_utils:number_value(B) 
   end.
 
+bool_fun('and') ->
+    fun(A, B) ->
+            A andalso B
+    end;
+bool_fun('or') ->
+    fun(A, B) ->
+            A orelse B
+    end.
+%% TODO more boolean operators
+
+
 %% @doc Add a position to each node
 %% @spec add_positions(Doc) -> ExtendedDoc
 %% @type ExtendedDoc = {atom(), [{binary(), any()}], [extended_node()], [non_neg_integer()]}
@@ -333,3 +350,6 @@ get_parent_position([_|ParentPosition]) ->
 %% @type Position = [non_neg_integer()]
 get_position_in_parent([MyPosition|_]) ->
     MyPosition.
+
+
+
