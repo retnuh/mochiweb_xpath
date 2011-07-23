@@ -44,7 +44,7 @@ count(_Ctx,[NodeList]) ->
     length(NodeList).
 
 %% @doc Function: string name(node-set?)
-'name'(_Ctx,[[{Tag,_,_}|_]]) ->
+'name'(_Ctx,[[{Tag,_,_,_}|_]]) ->
     Tag.
 
 %% @doc Function: boolean starts-with(string, string) 

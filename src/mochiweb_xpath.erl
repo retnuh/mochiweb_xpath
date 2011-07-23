@@ -60,11 +60,13 @@ execute(XPathString,Doc,Functions) when is_list(XPathString) ->
     execute(XPath,Doc,Functions);
 
 execute(XPath,Doc,Functions) ->    
-    R = {root,none,[Doc]},
+    R0 = {root,none,[Doc]},
+    R1 = add_positions(R0),
     Funs =  lists:foldl(fun(T={Key,_Fun,_Signature},Prev) ->
                             lists:keystore(Key,1,Prev,T)
             end,mochiweb_xpath_functions:default_functions(),Functions),
-    execute_expr(XPath,#ctx{ctx=[R],root=R,functions=Funs,position=0}).
+    Result = execute_expr(XPath,#ctx{ctx=[R1],root=R1,functions=Funs,position=0}),
+    remove_positions(Result).
 
 
 
@@ -100,8 +102,8 @@ execute_expr({function_call,Fun,Args},Ctx=#ctx{functions=Funs}) ->
             throw({efun_not_found,Fun})
     end.
 
-do_path_expr({step,{Axis,NodeTest,Predicates}},Ctx=#ctx{ctx=Context}) ->
-    NewNodeList = axis(Axis,NodeTest,Context),
+do_path_expr({step,{Axis,NodeTest,Predicates}}=_S,Ctx=#ctx{}) ->
+    NewNodeList = axis(Axis,NodeTest,Ctx),
     apply_predicates(Predicates,NewNodeList,Ctx);
 
 do_path_expr({refine,Step1,Step2},Ctx) ->
@@ -109,20 +111,20 @@ do_path_expr({refine,Step1,Step2},Ctx) ->
     do_path_expr(Step2,Ctx#ctx{ctx=S1}).
 
 
-axis('child',{name,{Tag,_,_}},Context) ->
-    F = fun ({Tag2,_,_}) when Tag2 == Tag -> true;
+axis('child',{name,{Tag,_,_}},#ctx{ctx=Context}) ->
+    F = fun ({Tag2,_,_,_}) when Tag2 == Tag -> true;
              (_) -> false
         end,
-    N = lists:map(fun ({_,_,Childs}) -> 
-                       lists:filter(F,Childs) ;
+    N = lists:map(fun ({_,_,Children,_}) -> 
+                       lists:filter(F, Children);
                    (_) -> []
                 end, Context),
     lists:flatten(N);
 
 
-axis('child',{node_type,text},Context) ->
-    L = lists:map(fun ({_,_,Childs}) -> 
-                     case lists:filter(fun is_binary/1,Childs) of
+axis('child',{node_type,text},#ctx{ctx=Context}) ->
+    L = lists:map(fun ({_,_,Children,_}) -> 
+                     case lists:filter(fun is_binary/1,Children) of
                             [] -> [];
                             T -> list_to_binary(T)
                      end;
@@ -131,16 +133,16 @@ axis('child',{node_type,text},Context) ->
                     end,Context),
     L;
 
-axis('child',{wildcard,wildcard},Context) ->
+axis('child',{wildcard,wildcard},#ctx{ctx=Context}) ->
    L = lists:map(fun
-                ({_,_,Children})-> Children;
+                ({_,_,Children,_})-> Children;
                 (_) -> []
               end, Context),
    lists:flatten(L);
                     
 
-axis(attribute,{name,{Attr,_Prefix,_Local}},Context) ->
-     L = lists:map(fun ({_,Attrs,_}) -> 
+axis(attribute,{name,{Attr,_Prefix,_Local}},#ctx{ctx=Context}) ->
+    L = lists:map(fun ({_,Attrs,_,_}) -> 
                      case proplists:get_value(Attr,Attrs) of
                             undefined -> [];
                             V -> V
@@ -150,13 +152,54 @@ axis(attribute,{name,{Attr,_Prefix,_Local}},Context) ->
                     end,Context),
     L;
 
-axis('descendant_or_self',{node_type,'node'},Context) ->
+axis('descendant_or_self',{node_type,'node'},#ctx{ctx=Context}) ->
     descendant_or_self(Context);
 
-axis('self',{node_type,'node'},Context) ->
+axis('parent', {node_type,node}, #ctx{root=Root, ctx=Context}) ->
+    L = lists:foldl(fun({_,_,_,Position}, Acc) ->
+                ParentPosition = get_parent_position(Position),
+                ParentNode = get_node_at(Root, ParentPosition),
+                [ParentNode | Acc]
+        end, [], Context),
+    lists:reverse(L);
+
+axis('following_sibling', {wildcard,wildcard}, #ctx{root=Root, ctx=Context}) ->
+    lists:foldl(fun({_,_,_,Position}, Acc) ->
+                ParentPosition = get_parent_position(Position),
+                MyPosition = get_position_in_parent(Position),
+                {_,_,Children,_} = get_node_at(Root, ParentPosition),
+                Acc ++ lists:sublist(Children, MyPosition+1, length(Children) - MyPosition)
+        end, [], Context);
+
+axis('following_sibling', {name,{Tag,_,_}}, Ctx=#ctx{ctx=_Context}) ->
+    F = fun ({Tag2,_,_,_}) when Tag2 == Tag -> true;
+             (_) -> false
+        end,
+    Following0 = axis('following_sibling', {wildcard,wildcard}, Ctx),
+    Following1 = lists:filter(F, Following0),
+    Following1;
+
+axis('preceding_sibling', {wildcard,wildcard}, #ctx{root=Root, ctx=Context}) ->
+    lists:foldl(fun({_,_,_,Position}, Acc) ->
+                ParentPosition = get_parent_position(Position),
+                MyPosition = get_position_in_parent(Position),
+                {_,_,Children,_} = get_node_at(Root, ParentPosition),
+                Acc ++ lists:sublist(Children, MyPosition-1)
+        end, [], Context);
+
+axis('preceding_sibling', {name,{Tag,_,_}}, Ctx=#ctx{ctx=_Context}) ->
+    F = fun ({Tag2,_,_,_}) when Tag2 == Tag -> true;
+             (_) -> false
+        end,
+    Preceding0 = axis('preceding_sibling', {wildcard,wildcard}, Ctx),
+    Preceding1 = lists:filter(F, Preceding0),
+    Preceding1;
+
+
+axis('self',{node_type,'node'}, #ctx{ctx=Context}) ->
     Context.
 
-    
+
 descendant_or_self(Ctx) ->
     L = descendant_or_self(Ctx,[]),
     lists:reverse(L).
@@ -164,7 +207,7 @@ descendant_or_self(Ctx) ->
 descendant_or_self([],Acc) ->
     Acc;
 
-descendant_or_self([E={_,_,Children}|Rest],Acc) ->
+descendant_or_self([E={_,_,Children,_}|Rest],Acc) ->
     N = descendant_or_self(Children,[E|Acc]),
     descendant_or_self(Rest,N);
    
@@ -241,9 +284,52 @@ comp_fun('>=') ->
     mochiweb_xpath_utils:number_value(A) >= mochiweb_xpath_utils:number_value(B) 
   end.
 
+%% @doc Add a position to each node
+%% @spec add_positions(Doc) -> ExtendedDoc
+%% @type ExtendedDoc = {atom(), [{binary(), any()}], [extended_node()], [non_neg_integer()]}
+add_positions(Node) ->
+    R = add_positions_aux(Node, []),
+    R.
 
+add_positions_aux({Tag,Attrs,Children}, Position) ->
+    {_, NewChildren} = lists:foldl(fun(Child, {Count, AccChildren}) ->
+                NewChild = add_positions_aux(Child, [Count | Position]),
+                {Count+1, [NewChild|AccChildren]}
+        end, {1, []}, Children),
+    {Tag, Attrs, lists:reverse(NewChildren), Position};
+add_positions_aux(Data, _) ->
+    Data.
 
+%% @doc Remove position from each node
+%% @spec remove_positions(ExtendedDoc) -> Doc
+%% @type ExtendedDoc = {atom(), [{binary(), any()}], [extended_node()], [non_neg_integer()]}
+remove_positions([_|_] = Nodes) ->
+    [ remove_positions(SubNode) || SubNode <- Nodes ];
+remove_positions({Tag, Attrs, Children, _}) ->
+    {Tag, Attrs, Children};
+remove_positions(Data) ->
+    Data.
 
+%% @doc Get node according to a position relative to root node
+%% @spec get_node_at(ExtendedDoc, Position) -> ExtendedDoc
+%% @type Position = [non_neg_integer()]
+%% @type ExtendedDoc = {atom(), [{binary(), any()}], [extended_node()], [non_neg_integer()]}
+get_node_at(Node, Position) ->
+    get_node_at_aux(Node, lists:reverse(Position)).
 
+get_node_at_aux(Node, []) ->
+    Node;
+get_node_at_aux({_,_,Children,_}, [Pos|Next]) ->
+    get_node_at_aux(lists:nth(Pos, Children), Next).
 
+%% @doc Get parent position
+%% @spec get_parent_position(Position) -> Position
+%% @type Position = [non_neg_integer()]
+get_parent_position([_|ParentPosition]) ->
+    ParentPosition.
 
+%% @doc Get position relative to my parent
+%% @spec get_self_position(Position) -> non_neg_integer()
+%% @type Position = [non_neg_integer()]
+get_position_in_parent([MyPosition|_]) ->
+    MyPosition.

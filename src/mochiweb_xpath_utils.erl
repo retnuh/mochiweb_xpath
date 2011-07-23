@@ -17,9 +17,16 @@ string_value(N) when is_list(N)->
         [X|_] -> string_value(X);
         [] -> <<>>
     end;
-string_value({_,_,Contents}) ->
+string_value({_,_,Contents,_}) ->
     L = lists:filter(fun
-                    ({_,_,_}) ->false;
+                    ({_,_,_,_}) ->false;
+                    (B) when is_binary(B) -> true
+        end,Contents),
+    list_to_binary(L);
+
+string_value({_,_,Contents,_}) ->
+    L = lists:filter(fun
+                    ({_,_,_,_}) ->false;
                     (B) when is_binary(B) -> true
         end,Contents),
     list_to_binary(L);
@@ -32,8 +39,8 @@ string_value(B) when is_binary(B) ->
 string_value(B) when is_atom(B) ->
     list_to_binary(atom_to_list(B)).
 
-node_set_value(N) when is_list(N) ->
-    N;
+node_set_value(List) ->
+    List;
 node_set_value(N) ->
     throw({node_set_expected,N}).
 
