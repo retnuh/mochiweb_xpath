@@ -30,7 +30,15 @@ test_definitions() ->
                {"/html/body/*/input[position() > 3]/@value",[<<"Val4">>,<<"Val5">>,<<"Val6">>, "", ""]},
                {"/html/body/*/input[@type='hidden']/@value",[<<"Val1">>,<<"Val2">>,<<"Val3">>,<<"Val4">>,<<"Val5">>,<<"Val6">>]},
                {"/html/body/*/input[@type='hidden'][last()]/@value",[<<"Val6">>]},
-               {"/html/body/*/input[@type='hidden'][position()>1]/@value",[<<"Val2">>,<<"Val3">>,<<"Val4">>,<<"Val5">>,<<"Val6">>]}
+               {"/html/body/*/input[@type='hidden'][position()>1]/@value",[<<"Val2">>,<<"Val3">>,<<"Val4">>,<<"Val5">>,<<"Val6">>]},
+               {"name(/html/body/*/input[@type='hidden'][@name=\"id1\"]/..)",<<"form">>},
+               {"name(/html/body/*/input[@type='hidden'][@name=\"id1\"]/../..)",<<"body">>},
+               {"name(/html/body/*/input[@type='hidden'][@name=\"id1\"]/../../..)",<<"html">>},
+               {"/html/body/*/input[position() = 3]/@value",[<<"Val3">>]},
+               {"count(/html/body/*/input[position() = 3]/preceding-sibling::*)",2},
+               {"count(/html/body/*/input[position() = 3]/following-sibling::*)",6},
+               {"/html/body/*/input[position() = 3]/following-sibling::*/@value",[<<"Val4">>,<<"Val5">>,<<"Val6">>, "", "", ""]},
+               {"/html/body/*/input[position() = 3]/following-sibling::input/@value",[<<"Val4">>,<<"Val5">>,<<"Val6">>, "", ""]}
               ]},
       {?HTML2,[
                {"/html/body/div[1]/a[3]/text()",[<<"ssddd">>]},
@@ -59,7 +67,10 @@ test_definitions() ->
                {"//a[my_fun(@href) > 0]/text()", 
                 [<<"ssddd">>,<<"myURLValue">>]},
                {"/html/body/div[1]/a[1]",
-                [{<<"a">>,[{<<"href">>,<<"sss">>}],[<<"ssddd">>]}]}
+                [{<<"a">>,[{<<"href">>,<<"sss">>}],[<<"ssddd">>]}]},
+               {"/html/body/div[1]/a[position() < 3]", 
+                [{<<"a">>,[{<<"href">>,<<"sss">>}],[<<"ssddd">>]}, 
+                 {<<"a">>, [{<<"href">>,<<"sssd">>}], [<<"sfgfe">>]}]}
               ]}
     ].
 
