@@ -324,7 +324,7 @@ remove_positions(Nodes) when is_list(Nodes) ->
     [ remove_positions(SubNode) || SubNode <- Nodes ];
 remove_positions({Tag, Attrs, Children, _}) ->
     {Tag, Attrs, remove_positions(Children)};
-remove_positions(Data) when is_binary(Data) ->
+remove_positions(Data) ->
     Data.
 
 %% @doc Get node according to a position relative to root node
