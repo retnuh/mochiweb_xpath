@@ -76,6 +76,9 @@ execute_expr({path,'abs',Path},Ctx =#ctx{root=Root}) ->
 execute_expr({path,'rel',Path},Ctx) ->
     do_path_expr(Path,Ctx);
 
+execute_expr({path,'union',{Path1, Path2}},Ctx) ->
+    execute_expr(Path1,Ctx) ++ execute_expr(Path2, Ctx);
+
 execute_expr({comp,Comp,A,B},Ctx) ->
     CompFun = comp_fun(Comp),
     L = execute_expr(A,Ctx),

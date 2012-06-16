@@ -38,7 +38,8 @@ test_definitions() ->
                {"count(/html/body/*/input[position() = 3]/preceding-sibling::*)",2},
                {"count(/html/body/*/input[position() = 3]/following-sibling::*)",6},
                {"/html/body/*/input[position() = 3]/following-sibling::*/@value",[<<"Val4">>,<<"Val5">>,<<"Val6">>, "", "", ""]},
-               {"/html/body/*/input[position() = 3]/following-sibling::input/@value",[<<"Val4">>,<<"Val5">>,<<"Val6">>, "", ""]}
+               {"/html/body/*/input[position() = 3]/following-sibling::input/@value",[<<"Val4">>,<<"Val5">>,<<"Val6">>, "", ""]},
+			   {"/html/head/title/text() | /html/body/h1/text()", [<<"Title">>, <<"Some Title!!">>]}
               ]},
       {?HTML2,[
                {"/html/body/div[1]/a[3]/text()",[<<"ssddd">>]},

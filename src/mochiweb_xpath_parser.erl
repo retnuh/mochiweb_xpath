@@ -18,6 +18,9 @@ compile_xpath(XPathString) ->
 %       xpath expressions used in xmerl(using lists and atoms), to a
 %       representation using only binaries, to match the way in
 %       which the mochiweb html parser represents data 
+simplify({path, union, {Path1, Path2}})->
+	%% "expr1 | expr2 | expr3"
+	{path, union, {simplify(Path1), simplify(Path2)}};
 simplify({path,Type,Path}) ->
     {path,Type,simplify_path(Path)};
 simplify({comp,Comp,A,B}) ->
@@ -37,6 +40,7 @@ simplify_path({step,{Axis,NodeTest,Predicates}}) ->
             simplify_predicates(Predicates)}};
 simplify_path({refine,Path1,Path2}) ->
     {refine,simplify_path(Path1),simplify_path(Path2)}.
+
 
 simplify_node_test({name,{Tag,Prefix,Local}}) ->
     {name,{to_binary(Tag),Prefix,Local}};
