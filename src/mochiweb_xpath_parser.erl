@@ -19,8 +19,8 @@ compile_xpath(XPathString) ->
 %       representation using only binaries, to match the way in
 %       which the mochiweb html parser represents data 
 simplify({path, union, {Path1, Path2}})->
-	%% "expr1 | expr2 | expr3"
-	{path, union, {simplify(Path1), simplify(Path2)}};
+    %% "expr1 | expr2 | expr3"
+    {path, union, {simplify(Path1), simplify(Path2)}};
 simplify({path,Type,Path}) ->
     {path,Type,simplify_path(Path)};
 simplify({comp,Comp,A,B}) ->
