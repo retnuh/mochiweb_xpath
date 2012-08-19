@@ -62,64 +62,87 @@ execute(XPathString,Doc,Functions) when is_list(XPathString) ->
 execute(XPath,Doc,Functions) ->    
     R0 = {root,none,[Doc]},
     R1 = add_positions(R0),
-    Funs =  lists:foldl(fun(T={Key,_Fun,_Signature},Prev) ->
-                            lists:keystore(Key,1,Prev,T)
-            end,mochiweb_xpath_functions:default_functions(),Functions),
-    Result = execute_expr(XPath,#ctx{ctx=[R1],root=R1,functions=Funs,position=0}),
+    Result = execute_expr(XPath,#ctx{ctx=[R1],
+                                     root=R1,
+                                     functions=Functions,
+                                     position=0}),
     remove_positions(Result).
 
 
+%% xmerl_xpath:match_expr/2
+execute_expr({path, Type, Arg}, S) ->
+    eval_path(Type, Arg, S);
+execute_expr(PrimExpr, S) ->
+    eval_primary_expr(PrimExpr, S).
 
-execute_expr({path,'abs',Path},Ctx =#ctx{root=Root}) ->
-    do_path_expr(Path,Ctx#ctx{ctx=[Root]});
 
-execute_expr({path,'rel',Path},Ctx) ->
-    do_path_expr(Path,Ctx);
+eval_path(union, {PathExpr1, PathExpr2}, C) ->
+    %% in XPath 1.0 union doesn't necessary must return nodes in document
+    %% order (but must in XPath 2.0)
+    S1 = execute_expr(PathExpr1, C),
+    S2 = execute_expr(PathExpr2, C),
+    ordsets:to_list(ordsets:union(ordsets:from_list(S1),
+                                  ordsets:from_list(S2)));
+eval_path(abs, Path ,Ctx = #ctx{root=Root}) ->
+    do_path_expr(Path, Ctx#ctx{ctx=[Root]});
+eval_path(rel, Path, Ctx) ->
+    do_path_expr(Path, Ctx);
+eval_path(filter, {_PathExpr, {pred, _Pred}}, _C) ->
+    error({"Not implemented", "filter"}).      % Who needs them?
 
-execute_expr({path,'union',{Path1, Path2}},Ctx) ->
-    execute_expr(Path1,Ctx) ++ execute_expr(Path2, Ctx);
 
-execute_expr({comp,Comp,A,B},Ctx) ->
+eval_primary_expr({comp,Comp,A,B},Ctx) ->
     CompFun = comp_fun(Comp),
     L = execute_expr(A,Ctx),
     R = execute_expr(B,Ctx),
     comp(CompFun,L,R);
-
-execute_expr({bool,Comp,A,B},Ctx) ->
+eval_primary_expr({bool,Comp,A,B},Ctx) ->
     CompFun = bool_fun(Comp),
     L = execute_expr(A,Ctx),
     R = execute_expr(B,Ctx),
     comp(CompFun,L,R);
-
-execute_expr({literal,L},_Ctx) ->
+eval_primary_expr({literal,L},_Ctx) ->
     [L];
-
-execute_expr({number,N},_Ctx) ->
+eval_primary_expr({number,N},_Ctx) ->
     [N];
-
-execute_expr({function_call,Fun,Args},Ctx=#ctx{functions=Funs}) ->
-    RealArgs = lists:map(fun(Arg) ->
-                            execute_expr(Arg,Ctx)
-                        end,Args),
-    case lists:keysearch(Fun,1,Funs) of
-        {value,{Fun,F,FormalSignature}} -> 
-            TypedArgs = lists:map(fun({Type,Arg}) ->
-                                    mochiweb_xpath_utils:convert(Arg,Type)
-                        end,lists:zip(FormalSignature,RealArgs)),
-            F(Ctx,TypedArgs);
-        false -> 
-            throw({efun_not_found,Fun})
+eval_primary_expr({function_call, Fun, Args}, Ctx=#ctx{functions=Funs}) ->
+    %% TODO: refactor double-case
+    RealArgs = [execute_expr(Arg,Ctx) || Arg <- Args],
+    case mochiweb_xpath_functions:lookup_function(Fun) of
+        {Fun, F, FormalSignature} ->
+            call_xpath_function(F, RealArgs, FormalSignature, Ctx);
+        false ->
+            case lists:keysearch(Fun,1,Funs) of
+                {value, {Fun, F, FormalSignature}} ->
+                    call_xpath_function(F, RealArgs, FormalSignature, Ctx);
+                false ->
+                    throw({efun_not_found, Fun})
+            end
     end.
 
-do_path_expr({step,{Axis,NodeTest,Predicates}}=_S,Ctx=#ctx{}) ->
-    NewNodeList = axis(Axis,NodeTest,Ctx),
-    apply_predicates(Predicates,NewNodeList,Ctx);
 
+call_xpath_function(F, Args, FormalSignature, Ctx) ->
+    TypedArgs = [mochiweb_xpath_utils:convert(Arg,Type)
+                 || {Type,Arg} <- lists:zip(FormalSignature, Args)],
+    F(Ctx, TypedArgs).
+
+
+do_path_expr({step,{Axis,NodeTest,Predicates}}=_S,Ctx=#ctx{}) ->
+    NewNodeList = axis(Axis, NodeTest, Ctx),
+    apply_predicates(Predicates,NewNodeList,Ctx);
 do_path_expr({refine,Step1,Step2},Ctx) ->
     S1 = do_path_expr(Step1,Ctx),
     do_path_expr(Step2,Ctx#ctx{ctx=S1}).
 
 
+%%
+%% Axes
+%%
+
+axis('self',{node_type,'node'}, #ctx{ctx=Context}) ->
+    Context;
+axis('descendant', _Test, _Ctx) ->
+    error({not_implemented, descendant});
 axis('child',{name,{Tag,_,_}},#ctx{ctx=Context}) ->
     F = fun ({Tag2,_,_,_}) when Tag2 == Tag -> true;
              (_) -> false
@@ -202,11 +225,7 @@ axis('preceding_sibling', {name,{Tag,_,_}}, Ctx=#ctx{ctx=_Context}) ->
         end,
     Preceding0 = axis('preceding_sibling', {wildcard,wildcard}, Ctx),
     Preceding1 = lists:filter(F, Preceding0),
-    Preceding1;
-
-
-axis('self',{node_type,'node'}, #ctx{ctx=Context}) ->
-    Context.
+    Preceding1.
 
 
 descendant_or_self(Ctx) ->
@@ -225,6 +244,9 @@ descendant_or_self([_|Rest],Acc) ->
     descendant_or_self(Rest,Acc).
 
 
+%%
+%% Predicates
+%%
 apply_predicates(Predicates,NodeList,Ctx) ->
     lists:foldl(fun(Pred,Nodes) -> 
                  apply_predicate(Pred,Nodes,Ctx) 

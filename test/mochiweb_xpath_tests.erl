@@ -39,7 +39,10 @@ test_definitions() ->
                {"count(/html/body/*/input[position() = 3]/following-sibling::*)",6},
                {"/html/body/*/input[position() = 3]/following-sibling::*/@value",[<<"Val4">>,<<"Val5">>,<<"Val6">>, "", "", ""]},
                {"/html/body/*/input[position() = 3]/following-sibling::input/@value",[<<"Val4">>,<<"Val5">>,<<"Val6">>, "", ""]},
-               {"/html/head/title/text() | /html/body/h1/text()", [<<"Title">>, <<"Some Title!!">>]}
+               %% test union "|"
+               {"/html/head/title/text() | /html/body/h1/text()", [<<"Some Title!!">>, <<"Title">>]}, % not necessary in document order according to spec
+               %% test "contains()"
+               {"/html/body/div/img[contains(@src, 'broken')]/@src",[<<"some_broken_img_tag">>]}
               ]},
       {?HTML2,[
                {"/html/body/div[1]/a[3]/text()",[<<"ssddd">>]},

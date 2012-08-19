@@ -4,7 +4,7 @@
 %% created on 2008-05-07
 -module(mochiweb_xpath_functions).
 
--export([default_functions/0]).
+-export([lookup_function/1]).
 
 %% Default functions.
 %% The format is: {FunctionName, fun(), FunctionSignature}
@@ -14,17 +14,27 @@
 %% 
 %% The engine is responsable of calling the function with
 %% the correct arguments, given the function signature. 
-default_functions() ->
-    [
-        {'last',fun last/2,[]},
-        {'position',fun position/2,[]},
-        {'count',fun count/2,[node_set]},
-        {'name',fun 'name'/2,[node_set]},
-        {'starts-with', fun 'starts-with'/2,[string,string]},
-        {'substring', fun substring/2,[string,number,number]},
-        {'sum', fun sum/2,[node_set]},
-        {'string-length', fun 'string-length'/2,[string]}
-    ].
+lookup_function('last') ->
+    {'last',fun last/2,[]};
+lookup_function('position') ->
+    {'position',fun position/2,[]};
+lookup_function('count') ->
+    {'count',fun count/2,[node_set]};
+lookup_function('name') ->
+    {'name',fun 'name'/2,[node_set]};
+lookup_function('starts-with') ->
+    {'starts-with', fun 'starts-with'/2,[string,string]};
+lookup_function('contains') ->
+    {'contains', fun 'contains'/2,[string,string]};
+lookup_function('substring') ->
+    {'substring', fun substring/2,[string,number,number]};
+lookup_function('sum') ->
+    {'sum', fun sum/2,[node_set]};
+lookup_function('string-length') ->
+    {'string-length', fun 'string-length'/2,[string]};
+lookup_function(_) ->
+    false.
+
 
 
 %% @doc Function: boolean last() 
@@ -56,6 +66,16 @@ count(_Ctx,[NodeList]) ->
         <<Right:Size/binary,_/binary>> -> true;
         _ -> false
     end.
+
+%% @doc Function: checks that Where contains What
+contains(_Ctx,[Where, What]) ->
+    case binary:match(Where, [What]) of
+        nomatch ->
+            false;
+        {_, _} ->
+            true
+    end.
+
 
 %% @doc Function: string substring(string, number, number?) 
 %%      The substring function returns the substring of the first argument 
