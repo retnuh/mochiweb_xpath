@@ -107,14 +107,13 @@ eval_primary_expr({number,N},_Ctx) ->
     [N];
 eval_primary_expr({function_call, Fun, Args}, Ctx=#ctx{functions=Funs}) ->
     %% TODO: refactor double-case
-    RealArgs = [execute_expr(Arg,Ctx) || Arg <- Args],
     case mochiweb_xpath_functions:lookup_function(Fun) of
         {Fun, F, FormalSignature} ->
-            call_xpath_function(F, RealArgs, FormalSignature, Ctx);
+            call_xpath_function(F, Args, FormalSignature, Ctx);
         false ->
             case lists:keysearch(Fun,1,Funs) of
                 {value, {Fun, F, FormalSignature}} ->
-                    call_xpath_function(F, RealArgs, FormalSignature, Ctx);
+                    call_xpath_function(F, Args, FormalSignature, Ctx);
                 false ->
                     throw({efun_not_found, Fun})
             end
@@ -122,9 +121,24 @@ eval_primary_expr({function_call, Fun, Args}, Ctx=#ctx{functions=Funs}) ->
 
 
 call_xpath_function(F, Args, FormalSignature, Ctx) ->
-    TypedArgs = [mochiweb_xpath_utils:convert(Arg,Type)
-                 || {Type,Arg} <- lists:zip(FormalSignature, Args)],
+    TypedArgs = prepare_xpath_function_args(Args, FormalSignature, Ctx),
     F(Ctx, TypedArgs).
+
+%% execute function args expressions and convert them using formal
+%% signatures
+prepare_xpath_function_args(Args, Specs, Ctx) ->
+    RealArgs = [execute_expr(Arg, Ctx) || Arg <- Args],
+    convert_xpath_function_args(RealArgs, Specs, []).
+
+convert_xpath_function_args([], [], Acc) ->
+    lists:reverse(Acc);
+convert_xpath_function_args(Args, [{'*', Spec}], Acc) ->
+    NewArgs = [mochiweb_xpath_utils:convert(Arg,Spec) || Arg <- Args],
+    lists:reverse(Acc) ++ NewArgs;
+convert_xpath_function_args([Arg | Args], [Spec | Specs], Acc) ->
+    NewAcc = [mochiweb_xpath_utils:convert(Arg,Spec) | Acc],
+    convert_xpath_function_args(Args, Specs, NewAcc).
+
 
 
 do_path_expr({step,{Axis,NodeTest,Predicates}}=_S,Ctx=#ctx{}) ->

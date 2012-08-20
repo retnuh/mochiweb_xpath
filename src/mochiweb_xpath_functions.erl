@@ -8,8 +8,12 @@
 
 %% Default functions.
 %% The format is: {FunctionName, fun(), FunctionSignature}
+%% WildCard argspec must be the last spec in list.
+%%
 %% @type FunctionName = atom()
-%% @type FunctionSignature = [XPathType]
+%% @type FunctionSignature = [XPathArgSpec]
+%% @type XPathArgSpec = XPathType | WildCardArgSpec
+%% @type WildCardArgSpec = {'*', XPathType}
 %% @type XPathType = node_set | string | number | boolean
 %% 
 %% The engine is responsable of calling the function with
@@ -20,6 +24,8 @@ lookup_function('position') ->
     {'position',fun position/2,[]};
 lookup_function('count') ->
     {'count',fun count/2,[node_set]};
+lookup_function('concat') ->
+    {'concat',fun concat/2,[{'*', string}]};
 lookup_function('name') ->
     {'name',fun 'name'/2,[node_set]};
 lookup_function('starts-with') ->
@@ -52,6 +58,12 @@ position({ctx, _, _, _, Position, _} = _Ctx, []) ->
 %%      argument node-set.
 count(_Ctx,[NodeList]) ->
     length(NodeList).
+
+%% @doc Function: concat(binary, binary, ...)
+%%      Concatenate string arguments (variable length)
+concat(_Ctx, BinariesList) ->
+    %% list_to_binary()
+    << <<Str/binary>> || Str <- BinariesList>>.
 
 %% @doc Function: string name(node-set?)
 'name'(_Ctx,[[{Tag,_,_,_}|_]]) ->
