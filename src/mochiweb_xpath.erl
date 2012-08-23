@@ -88,14 +88,18 @@ eval_path(abs, Path ,Ctx = #ctx{root=Root}) ->
 eval_path(rel, Path, Ctx) ->
     do_path_expr(Path, Ctx);
 eval_path(filter, {_PathExpr, {pred, _Pred}}, _C) ->
-    error({"Not implemented", "filter"}).      % Who needs them?
+    error({not_implemented, "filter"}).      % Who needs them?
 
 
 eval_primary_expr({comp,Comp,A,B},Ctx) ->
+	%% for predicates
     CompFun = comp_fun(Comp),
     L = execute_expr(A,Ctx),
     R = execute_expr(B,Ctx),
     comp(CompFun,L,R);
+eval_primary_expr({arith, Op, Arg1, Arg2}, Ctx) ->
+	%% for predicates
+	arith(Op, Arg1, Arg2, Ctx);
 eval_primary_expr({bool,Comp,A,B},Ctx) ->
     CompFun = bool_fun(Comp),
     L = execute_expr(A,Ctx),
@@ -156,7 +160,7 @@ do_path_expr({refine,Step1,Step2},Ctx) ->
 axis('self',{node_type,'node'}, #ctx{ctx=Context}) ->
     Context;
 axis('descendant', _Test, _Ctx) ->
-    error({not_implemented, descendant});
+    error({not_implemented, "descendant axis"});
 axis('child',{name,{Tag,_,_}},#ctx{ctx=Context}) ->
     F = fun ({Tag2,_,_,_}) when Tag2 == Tag -> true;
              (_) -> false
@@ -262,15 +266,15 @@ descendant_or_self([_|Rest],Acc) ->
 %% Predicates
 %%
 apply_predicates(Predicates,NodeList,Ctx) ->
-    lists:foldl(fun(Pred,Nodes) -> 
+    lists:foldl(fun({pred, Pred} ,Nodes) ->
                  apply_predicate(Pred,Nodes,Ctx) 
                 end, NodeList,Predicates).
 
 % special case: indexing
-apply_predicate({pred,{number,N}},NodeList,_Ctx) when length(NodeList) >= N ->
+apply_predicate({number,N}, NodeList, _Ctx) when length(NodeList) >= N ->
     [lists:nth(N,NodeList)];
 
-apply_predicate({pred,Pred},NodeList,Ctx) ->
+apply_predicate(Pred, NodeList,Ctx) ->
     Size = length(NodeList),
     Filter = fun(Node, {AccPosition, AccNodes0}) ->
             Predicate = mochiweb_xpath_utils:boolean_value(
@@ -338,6 +342,23 @@ bool_fun('or') ->
             A orelse B
     end.
 %% TODO more boolean operators
+
+%% Arithmetic operations
+arith('+', Arg1, Arg2, _Ctx) ->
+    mochiweb_xpath_utils:number_value(Arg1)
+		+ mochiweb_xpath_utils:number_value(Arg2);
+arith('-', Arg1, Arg2, _Ctx) ->
+	mochiweb_xpath_utils:number_value(Arg1)
+		- mochiweb_xpath_utils:number_value(Arg2);
+arith('*', Arg1, Arg2, _Ctx) ->
+	mochiweb_xpath_utils:number_value(Arg1)
+		* mochiweb_xpath_utils:number_value(Arg2);
+arith('div', Arg1, Arg2, _Ctx) ->
+	mochiweb_xpath_utils:number_value(Arg1)
+		/ mochiweb_xpath_utils:number_value(Arg2);
+arith('mod', Arg1, Arg2, _Ctx) ->
+	mochiweb_xpath_utils:number_value(Arg1)
+		rem mochiweb_xpath_utils:number_value(Arg2).
 
 
 %% @doc Add a position to each node

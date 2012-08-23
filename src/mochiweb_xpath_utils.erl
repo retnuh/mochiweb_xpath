@@ -30,7 +30,10 @@ string_value(N) when is_integer(N) ->
 string_value(B) when is_binary(B) ->
     B;
 string_value(B) when is_atom(B) ->
-    list_to_binary(atom_to_list(B)).
+    list_to_binary(atom_to_list(B));
+string_value(_Expr) ->
+	%% string_value(mochiweb_xpath:execute_expr(Expr, Ctx)).
+	throw({not_implemented, "String from expression"}).
 
 node_set_value(List) when is_list(List) ->
     List;
@@ -39,7 +42,11 @@ node_set_value(N) ->
 
 number_value(N) when is_integer(N) or is_float(N) ->
     N;
-
+number_value({number, N}) when is_integer(N) or is_float(N) ->
+	N;
+number_value({negative, Exp}) ->
+	N = number_value(Exp),
+	- N;
 number_value(N) when is_binary(N)->
     String = binary_to_list(N),
     case erl_scan:string(String) of

@@ -29,10 +29,15 @@ simplify({literal,L}) ->
     {literal,list_to_binary(L)};
 simplify({number,N}) ->
     {number,N};
+simplify({negative, Smth}) ->
+    {negative, Smth};
 simplify({bool, Comp, A, B}) ->
     {bool, Comp, simplify(A), simplify(B)};
 simplify({function_call,Fun,Args}) ->
-    {function_call,Fun,lists:map(fun simplify/1,Args)}.
+    {function_call,Fun,lists:map(fun simplify/1,Args)};
+simplify({arith, Op, Arg1, Arg2}) ->
+	{arith, Op, simplify(Arg1), simplify(Arg2)}.
+
 
 simplify_path({step,{Axis,NodeTest,Predicates}}) ->
     {step,{Axis,
