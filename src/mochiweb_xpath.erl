@@ -92,14 +92,14 @@ eval_path(filter, {_PathExpr, {pred, _Pred}}, _C) ->
 
 
 eval_primary_expr({comp,Comp,A,B},Ctx) ->
-	%% for predicates
+    %% for predicates
     CompFun = comp_fun(Comp),
     L = execute_expr(A,Ctx),
     R = execute_expr(B,Ctx),
     comp(CompFun,L,R);
 eval_primary_expr({arith, Op, Arg1, Arg2}, Ctx) ->
-	%% for predicates
-	arith(Op, Arg1, Arg2, Ctx);
+    %% for predicates
+    arith(Op, Arg1, Arg2, Ctx);
 eval_primary_expr({bool,Comp,A,B},Ctx) ->
     CompFun = bool_fun(Comp),
     L = execute_expr(A,Ctx),
