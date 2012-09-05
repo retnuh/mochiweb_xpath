@@ -173,7 +173,6 @@ axis('child',{name,{Tag,_,_}},#ctx{ctx=Context}) ->
                 end, Context),
     lists:flatten(N);
 
-
 axis('child',{node_type,text},#ctx{ctx=Context}) ->
     L = lists:map(fun ({_,_,Children,_}) -> 
                      case lists:filter(fun is_binary/1,Children) of
@@ -184,28 +183,12 @@ axis('child',{node_type,text},#ctx{ctx=Context}) ->
                        []
                     end,Context),
     L;
-
 axis('child',{wildcard,wildcard},#ctx{ctx=Context}) ->
    L = lists:map(fun
                 ({_,_,Children,_})-> Children;
                 (_) -> []
               end, Context),
    lists:flatten(L);
-                    
-
-axis(attribute,{name,{Attr,_Prefix,_Local}},#ctx{ctx=Context}) ->
-    L = lists:map(fun ({_,Attrs,_,_}) -> 
-                     case proplists:get_value(Attr,Attrs) of
-                            undefined -> [];
-                            V -> V
-                     end;
-                       (_) -> 
-                       []
-                    end,Context),
-    L;
-
-axis('descendant_or_self',{node_type,'node'},#ctx{ctx=Context}) ->
-    descendant_or_self(Context);
 
 axis('parent', {node_type,node}, #ctx{root=Root, ctx=Context}) ->
     L = lists:foldl(fun({_,_,_,Position}, Acc) ->
@@ -214,6 +197,8 @@ axis('parent', {node_type,node}, #ctx{root=Root, ctx=Context}) ->
                 [ParentNode | Acc]
         end, [], Context),
     lists:reverse(L);
+axis('ancestor', _Test, _Ctx) ->
+    error({not_implemented, "ancestor axis"});
 
 axis('following_sibling', {wildcard,wildcard}, #ctx{root=Root, ctx=Context}) ->
     lists:foldl(fun({_,_,_,Position}, Acc) ->
@@ -222,7 +207,6 @@ axis('following_sibling', {wildcard,wildcard}, #ctx{root=Root, ctx=Context}) ->
                 {_,_,Children,_} = get_node_at(Root, ParentPosition),
                 Acc ++ lists:sublist(Children, MyPosition+1, length(Children) - MyPosition)
         end, [], Context);
-
 axis('following_sibling', {name,{Tag,_,_}}, Ctx=#ctx{ctx=_Context}) ->
     F = fun ({Tag2,_,_,_}) when Tag2 == Tag -> true;
              (_) -> false
@@ -238,14 +222,36 @@ axis('preceding_sibling', {wildcard,wildcard}, #ctx{root=Root, ctx=Context}) ->
                 {_,_,Children,_} = get_node_at(Root, ParentPosition),
                 Acc ++ lists:sublist(Children, MyPosition-1)
         end, [], Context);
-
 axis('preceding_sibling', {name,{Tag,_,_}}, Ctx=#ctx{ctx=_Context}) ->
     F = fun ({Tag2,_,_,_}) when Tag2 == Tag -> true;
              (_) -> false
         end,
     Preceding0 = axis('preceding_sibling', {wildcard,wildcard}, Ctx),
     Preceding1 = lists:filter(F, Preceding0),
-    Preceding1.
+    Preceding1;
+
+axis('following', _Test, _Ctx) ->
+    error({not_implemented, "following axis"});
+axis('preceeding', _Test, _Ctx) ->
+    error({not_implemented, "preceeding axis"});
+
+axis(attribute,{name,{Attr,_Prefix,_Local}},#ctx{ctx=Context}) ->
+    L = lists:map(fun ({_,Attrs,_,_}) ->
+                     case proplists:get_value(Attr,Attrs) of
+                            undefined -> [];
+                            V -> V
+                     end;
+                       (_) ->
+                       []
+                    end,Context),
+    L;
+axis('namespace', _Test, _Ctx) ->
+    error({not_implemented, "namespace axis"});
+axis('ancestor_or_self', _Test, _Ctx) ->
+    error({not_implemented, "ancestor-or-self axis"});
+axis('descendant_or_self',{node_type,'node'},#ctx{ctx=Context}) ->
+    descendant_or_self(Context).
+
 
 
 descendant_or_self(Ctx) ->

@@ -54,7 +54,6 @@ Xpath coverage
 * ancestor-or-self
 * descendant
 * following
-* following-sibling
 * namespace
 * preceding
 
@@ -78,3 +77,6 @@ Xpath coverage
 * floor
 * ceiling
 * round
+
+### TODO:
+port `match_*` from xmerl_xpath for better axes support
