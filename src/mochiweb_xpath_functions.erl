@@ -109,7 +109,7 @@ substring(_Ctx,[String,Start,Length]) when is_binary(String)->
 %%      node-set, of the result of converting the string-values of the node
 %%      to a number.
 sum(_Ctx,[Values]) ->
-    lists:sum(lists:map(fun  mochiweb_xpath_utils:number_value/1,Values)).
+    lists:sum([mochiweb_xpath_utils:number_value(V) || V <- Values]).
 
 %% @doc Function: number string-length(string?) 
 %%      The string-length returns the number of characters in the string 

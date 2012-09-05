@@ -76,7 +76,15 @@ test_definitions() ->
                 [{<<"a">>,[{<<"href">>,<<"sss">>}],[<<"ssddd">>]}]},
                {"/html/body/div[1]/a[position() < 3]", 
                 [{<<"a">>,[{<<"href">>,<<"sss">>}],[<<"ssddd">>]}, 
-                 {<<"a">>, [{<<"href">>,<<"sssd">>}], [<<"sfgfe">>]}]}
+                 {<<"a">>, [{<<"href">>,<<"sssd">>}], [<<"sfgfe">>]}]},
+               %% XPath expressions in arithmetic operations
+               {"sum(//div[@id='second']/div/number)", 23},
+               {"(//div[@id='second']/div/number[1]) + (//div[@id='second']/div/number[3])", 13},
+               %% XPath expressions in boolean operations
+               {"(/html/head/title) and (/html/body/h1)", true},
+               {"/html[head/title and body/h1]/body/h1/text()", [<<"Some Title!!">>]},
+               %% XPath expressions in string operations
+               {"/html/body/div[@id='first']/@class = /html/body/div[@id='last']/@class", true}
               ]}
     ].
 

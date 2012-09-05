@@ -99,7 +99,9 @@ eval_primary_expr({comp,Comp,A,B},Ctx) ->
     comp(CompFun,L,R);
 eval_primary_expr({arith, Op, Arg1, Arg2}, Ctx) ->
     %% for predicates
-    arith(Op, Arg1, Arg2, Ctx);
+    L = execute_expr(Arg1,Ctx),
+    R = execute_expr(Arg2,Ctx),
+    arith(Op, L, R);
 eval_primary_expr({bool,Comp,A,B},Ctx) ->
     CompFun = bool_fun(Comp),
     L = execute_expr(A,Ctx),
@@ -335,28 +337,30 @@ comp_fun('>=') ->
 
 bool_fun('and') ->
     fun(A, B) ->
-            A andalso B
+            mochiweb_xpath_utils:boolean_value(A)
+                andalso mochiweb_xpath_utils:boolean_value(B)
     end;
 bool_fun('or') ->
     fun(A, B) ->
-            A orelse B
+            mochiweb_xpath_utils:boolean_value(A)
+                orelse mochiweb_xpath_utils:boolean_value(B)
     end.
 %% TODO more boolean operators
 
 %% Arithmetic operations
-arith('+', Arg1, Arg2, _Ctx) ->
+arith('+', Arg1, Arg2) ->
     mochiweb_xpath_utils:number_value(Arg1)
 		+ mochiweb_xpath_utils:number_value(Arg2);
-arith('-', Arg1, Arg2, _Ctx) ->
+arith('-', Arg1, Arg2) ->
 	mochiweb_xpath_utils:number_value(Arg1)
 		- mochiweb_xpath_utils:number_value(Arg2);
-arith('*', Arg1, Arg2, _Ctx) ->
+arith('*', Arg1, Arg2) ->
 	mochiweb_xpath_utils:number_value(Arg1)
 		* mochiweb_xpath_utils:number_value(Arg2);
-arith('div', Arg1, Arg2, _Ctx) ->
+arith('div', Arg1, Arg2) ->
 	mochiweb_xpath_utils:number_value(Arg1)
 		/ mochiweb_xpath_utils:number_value(Arg2);
-arith('mod', Arg1, Arg2, _Ctx) ->
+arith('mod', Arg1, Arg2) ->
 	mochiweb_xpath_utils:number_value(Arg1)
 		rem mochiweb_xpath_utils:number_value(Arg2).
 

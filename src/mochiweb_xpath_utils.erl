@@ -65,9 +65,14 @@ boolean_value(N) when is_number(N) ->
     N /= 0;
 boolean_value(B) when is_binary(B) ->
     size(B) /= 0;
-boolean_value(B) when B == true;
-                      B == false ->
-              B.
+boolean_value(B) when is_boolean(B) ->
+    B;
+boolean_value({_, _, _Contents, _}) ->
+    true;  % TODO: rly?
+boolean_value(_Expr) ->
+    throw({not_implemented, "Boolean from expression"}).
+
+
 
 
 
