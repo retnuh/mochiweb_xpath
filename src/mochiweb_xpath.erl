@@ -17,6 +17,9 @@
         size
     }).
 
+%%
+%% API
+%%
 
 %% @spec( string() ) -> compiled_xpath()
 compile_xpath(Expr) ->
@@ -68,6 +71,9 @@ execute(XPath,Doc,Functions) ->
                                      position=0}),
     remove_positions(Result).
 
+%%
+%% XPath tree traversing, top-level XPath interpreter
+%%
 
 %% xmerl_xpath:match_expr/2
 execute_expr({path, Type, Arg}, S) ->
@@ -158,37 +164,19 @@ do_path_expr({refine,Step1,Step2},Ctx) ->
 %%
 %% Axes
 %%
+%% TODO: port all axes to use test_node/3
 
 axis('self',{node_type,'node'}, #ctx{ctx=Context}) ->
     Context;
 axis('descendant', _Test, _Ctx) ->
     error({not_implemented, "descendant axis"});
-axis('child',{name,{Tag,_,_}},#ctx{ctx=Context}) ->
-    F = fun ({Tag2,_,_,_}) when Tag2 == Tag -> true;
-             (_) -> false
-        end,
+axis('child', NodeTest, #ctx{ctx=Context}) ->
+    F = fun (Node) -> test_node(NodeTest, Node, Context) end,
     N = lists:map(fun ({_,_,Children,_}) -> 
                        lists:filter(F, Children);
                    (_) -> []
                 end, Context),
     lists:flatten(N);
-
-axis('child',{node_type,text},#ctx{ctx=Context}) ->
-    L = lists:map(fun ({_,_,Children,_}) -> 
-                     case lists:filter(fun is_binary/1,Children) of
-                            [] -> [];
-                            T -> list_to_binary(T)
-                     end;
-                       (_) -> 
-                       []
-                    end,Context),
-    L;
-axis('child',{wildcard,wildcard},#ctx{ctx=Context}) ->
-   L = lists:map(fun
-                ({_,_,Children,_})-> Children;
-                (_) -> []
-              end, Context),
-   lists:flatten(L);
 
 axis('parent', {node_type,node}, #ctx{root=Root, ctx=Context}) ->
     L = lists:foldl(fun({_,_,_,Position}, Acc) ->
@@ -269,6 +257,38 @@ descendant_or_self([E={_,_,Children,_}|Rest],Acc) ->
 descendant_or_self([_|Rest],Acc) ->
     descendant_or_self(Rest,Acc).
 
+%% Except text nodes
+test_node({wildcard, wildcard}, Element, _Ctx) when not is_binary(Element) ->
+    true;
+test_node({prefix_test, Prefix}, {Tag, _, _, _}, _Ctx) ->
+    test_ns_prefix(Tag, Prefix);
+test_node({prefix_test, Prefix}, {AttrName, _}, _Ctx) ->
+    test_ns_prefix(AttrName, Prefix);
+test_node({name, {Tag, _, _}}, {Tag, _, _, _}, _Ctx) ->
+    true;
+test_node({name, {AttrName, _, _}}, {AttrName, _}, _Ctx) ->
+    true;
+test_node({node_type, text}, Text, _Ctx) when is_binary(Text) ->
+    true;
+test_node({node_type, node}, {_, _, _, _}, _Ctx) ->
+    true;
+test_node({node_type, attribute}, {_, _}, _Ctx) ->
+    true;
+test_node({node_type, comment}, {comment, _}, _Ctx) ->
+    true;
+test_node({node_type, processing_instruction}, {pi, _}, _Ctx) ->
+    true;
+test_node(_Other, _N, _Ctx) ->
+    false.
+
+test_ns_prefix(Name, Prefix) ->
+    PSize = size(Prefix),
+    case Name of
+        <<Prefix:PSize/binary, ":", _/binary>> ->
+            true;
+        _ ->
+            false
+    end.
 
 %%
 %% Predicates
@@ -295,6 +315,10 @@ apply_predicate(Pred, NodeList,Ctx) ->
     {_, L} = lists:foldl(Filter,{1,[]},NodeList),
     lists:reverse(L).
 
+
+%%
+%% Compare functions
+%%
 
 %% @see http://www.w3.org/TR/1999/REC-xpath-19991116 , section 3.4 
 comp(CompFun,L,R) when is_list(L), is_list(R) ->
@@ -341,6 +365,10 @@ comp_fun('>=') ->
     mochiweb_xpath_utils:number_value(A) >= mochiweb_xpath_utils:number_value(B) 
   end.
 
+%%
+%% Boolean functions
+%%
+
 bool_fun('and') ->
     fun(A, B) ->
             mochiweb_xpath_utils:boolean_value(A)
@@ -353,7 +381,10 @@ bool_fun('or') ->
     end.
 %% TODO more boolean operators
 
-%% Arithmetic operations
+%%
+%% Arithmetic functions
+%%
+
 arith('+', Arg1, Arg2) ->
     mochiweb_xpath_utils:number_value(Arg1)
 		+ mochiweb_xpath_utils:number_value(Arg2);
@@ -370,6 +401,9 @@ arith('mod', Arg1, Arg2) ->
 	mochiweb_xpath_utils:number_value(Arg1)
 		rem mochiweb_xpath_utils:number_value(Arg2).
 
+%%
+%% Helpers
+%%
 
 %% @doc Add a position to each node
 %% @spec add_positions(Doc) -> ExtendedDoc

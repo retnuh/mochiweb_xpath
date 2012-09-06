@@ -54,7 +54,11 @@ simplify_node_test(A={node_type,Type}) when Type == 'text' ;
                                             Type == 'node' ->
     A;
 simplify_node_test(A={wildcard,wildcard}) ->
-    A.
+    A;
+simplify_node_test({prefix_test, Prefix}) ->
+    %% [37] /prefix:*/ - namespace test
+    {prefix_test, list_to_binary(Prefix)}.
+
 
 simplify_predicates(X) -> lists:map(fun simplify_predicate/1,X).
 simplify_predicate({pred,Pred}) ->
