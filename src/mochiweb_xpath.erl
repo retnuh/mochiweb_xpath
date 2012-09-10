@@ -31,10 +31,6 @@ compile_xpath(Expr) ->
 %% @type XPath =  compiled_xpath() | string()
 %% @type Doc = node()
 %% @type Results = [node()] | binary() | boolean() | number()
-execute(XPathString,Doc) when is_list(XPathString) ->
-    XPath = mochiweb_xpath_parser:compile_xpath(XPathString),
-    execute(XPath,Doc);
-
 execute(XPath,Root) ->
     execute(XPath,Root,[]).
 
