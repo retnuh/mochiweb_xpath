@@ -18,22 +18,24 @@ string_value(N) when is_list(N)->
         [] -> <<>>
     end;
 string_value({_,_,Contents,_}) ->
+    %% Node
     L = lists:filter(fun
                     ({_,_,_,_}) ->false;
                     (B) when is_binary(B) -> true
         end,Contents),
     list_to_binary(L);
-
+string_value({_Name, Value}) ->
+    %% attribute
+    Value;
 string_value(N) when is_integer(N) ->
     list_to_binary(integer_to_list(N));
-
 string_value(B) when is_binary(B) ->
     B;
 string_value(B) when is_atom(B) ->
     list_to_binary(atom_to_list(B));
-string_value(_Expr) ->
+string_value(Expr) ->
 	%% string_value(mochiweb_xpath:execute_expr(Expr, Ctx)).
-	throw({not_implemented, "String from expression"}).
+	throw({not_implemented, "String from expression", Expr}).
 
 node_set_value(List) when is_list(List) ->
     List;

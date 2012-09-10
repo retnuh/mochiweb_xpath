@@ -60,6 +60,7 @@ execute(XPathString,Doc,Functions) when is_list(XPathString) ->
 
 execute(XPath,Doc,Functions) ->    
     R0 = {root,none,[Doc]},
+    %% TODO: set parent instead of positions list, or some lazy-positioning?
     R1 = add_positions(R0),
     Result = execute_expr(XPath,#ctx{ctx=[R1],
                                      root=R1,
@@ -162,18 +163,18 @@ do_path_expr({refine,Step1,Step2},Ctx) ->
 %%
 %% TODO: port all axes to use test_node/3
 
-axis('self',{node_type,'node'}, #ctx{ctx=Context}) ->
-    Context;
-axis('descendant', _Test, _Ctx) ->
-    error({not_implemented, "descendant axis"});
+axis('self', NodeTest, #ctx{ctx=Context}) ->
+    [N || N <- Context, test_node(NodeTest, N, Context)];
+axis('descendant', NodeTest, #ctx{ctx=Context}) ->
+    [N || {_,_,Children,_} <- Context,
+          N <- descendant_or_self(Children, NodeTest, [], Context)];
+axis('descendant_or_self', NodeTest, #ctx{ctx=Context}) ->
+    descendant_or_self(Context, NodeTest, [], Context);
 axis('child', NodeTest, #ctx{ctx=Context}) ->
-    F = fun (Node) -> test_node(NodeTest, Node, Context) end,
-    N = lists:map(fun ({_,_,Children,_}) -> 
-                       lists:filter(F, Children);
-                   (_) -> []
-                end, Context),
-    lists:flatten(N);
-
+    %% Flat list of all child nodes of Context that pass NodeTest
+    [N || {_,_,Children,_} <- Context,
+          N <- Children,
+          test_node(NodeTest, N, Context)];
 axis('parent', {node_type,node}, #ctx{root=Root, ctx=Context}) ->
     L = lists:foldl(fun({_,_,_,Position}, Acc) ->
                 ParentPosition = get_parent_position(Position),
@@ -219,39 +220,33 @@ axis('following', _Test, _Ctx) ->
 axis('preceeding', _Test, _Ctx) ->
     error({not_implemented, "preceeding axis"});
 
-axis(attribute,{name,{Attr,_Prefix,_Local}},#ctx{ctx=Context}) ->
-    L = lists:map(fun ({_,Attrs,_,_}) ->
-                     case proplists:get_value(Attr,Attrs) of
-                            undefined -> [];
-                            V -> V
-                     end;
-                       (_) ->
-                       []
-                    end,Context),
-    L;
+axis('attribute', NodeTest, #ctx{ctx=Context}) ->
+    %% Flat list of *attribute values* of Context, that pass NodeTest
+    %% TODO: maybe return attribute {Name, Value} will be better then
+    %% value only?
+    [Value || {_,Attributes,_,_} <- Context,
+          {_Name, Value} = A <- Attributes,
+          test_node(NodeTest, A, Context)];
 axis('namespace', _Test, _Ctx) ->
     error({not_implemented, "namespace axis"});
 axis('ancestor_or_self', _Test, _Ctx) ->
-    error({not_implemented, "ancestor-or-self axis"});
-axis('descendant_or_self',{node_type,'node'},#ctx{ctx=Context}) ->
-    descendant_or_self(Context).
+    error({not_implemented, "ancestor-or-self axis"}).
 
 
+descendant_or_self(Nodes, NodeTest, Acc, Ctx) ->
+    lists:reverse(do_descendant_or_self(Nodes, NodeTest, Acc, Ctx)).
 
-descendant_or_self(Ctx) ->
-    L = descendant_or_self(Ctx,[]),
-    lists:reverse(L).
-
-descendant_or_self([],Acc) ->
+do_descendant_or_self([], _, Acc, _) ->
     Acc;
+do_descendant_or_self([Node = {_, _, Children, _} | Rest], NodeTest, Acc, Ctx) ->
+    %% depth-first (document order)
+    NewAcc1 = maybe_add_node(Node, NodeTest, Acc, Ctx),
+    NewAcc2 = do_descendant_or_self(Children, NodeTest, NewAcc1, Ctx),
+    do_descendant_or_self(Rest, NodeTest, NewAcc2, Ctx);
+do_descendant_or_self([_Smth | Rest], NodeTest, Acc, Ctx) ->
+    %% NewAcc = maybe_add_node(Smth, NodeTest, Acc, Ctx), - no attribs or texts
+    do_descendant_or_self(Rest, NodeTest, Acc, Ctx).
 
-descendant_or_self([E={_,_,Children,_}|Rest],Acc) ->
-    N = descendant_or_self(Children,[E|Acc]),
-    descendant_or_self(Rest,N);
-   
-%% text() nodes aren't included
-descendant_or_self([_|Rest],Acc) ->
-    descendant_or_self(Rest,Acc).
 
 %% Except text nodes
 test_node({wildcard, wildcard}, Element, _Ctx) when not is_binary(Element) ->
@@ -268,12 +263,24 @@ test_node({node_type, text}, Text, _Ctx) when is_binary(Text) ->
     true;
 test_node({node_type, node}, {_, _, _, _}, _Ctx) ->
     true;
-test_node({node_type, attribute}, {_, _}, _Ctx) ->
+test_node({node_type, node}, Text, _Ctx) when is_binary(Text) ->
     true;
+test_node({node_type, node}, {_, _}, _Ctx) ->
+    true;
+%% test_node({node_type, attribute}, {_, _}, _Ctx) ->
+%%     true; [38] - attribute() not exists!
 test_node({node_type, comment}, {comment, _}, _Ctx) ->
     true;
 test_node({node_type, processing_instruction}, {pi, _}, _Ctx) ->
     true;
+test_node({processing_instruction, Name}, {pi, Node}, _Ctx) ->
+    NSize = size(Name),
+    case Node of
+        <<Name:NSize/binary, " ", _/binary>> ->
+            true;
+        _ ->
+            false
+    end;
 test_node(_Other, _N, _Ctx) ->
     false.
 
@@ -285,6 +292,28 @@ test_ns_prefix(Name, Prefix) ->
         _ ->
             false
     end.
+
+%% Append Node to Acc only when NodeTest passed
+maybe_add_node(Node, NodeTest, Acc, Ctx) ->
+    case test_node(NodeTest, Node, Ctx) of
+        true ->
+            [Node | Acc];
+        false ->
+            Acc
+    end.
+
+%% used for predicate indexing
+%% is_reverse_axis(ancestor) ->
+%%     true;
+%% is_reverse_axis(ancestor_or_self) ->
+%%     true;
+%% is_reverse_axis(preceding) ->
+%%     true;
+%% is_reverse_axis(preceding_sibling) ->
+%%     true;
+%% is_reverse_axis(_) ->
+%%     flase.
+
 
 %%
 %% Predicates

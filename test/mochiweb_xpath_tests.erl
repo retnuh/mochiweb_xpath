@@ -13,6 +13,11 @@
 -define(HTML1, "test1.html").
 -define(HTML2, "test2.html").
 
+%% "@" is shortcut of 'attribute::'
+%% "//" is like "descendant-or-self::" on root node
+%% empty axis is "child::"
+%% "../" is "parent::"
+%% "./" is "self::"
 
 %% [{HtmlFileName,Cases}]
 %% Cases = {XPath,ExpectedResult}
@@ -27,7 +32,7 @@ test_definitions() ->
                {"/html/head/title/text() = 'Title'",true},
                {"/html/head[non_existent/no_existent]/title/text()",[]},
                {"/html/body/*/input[position() = 3]/@value",[<<"Val3">>]},
-               {"/html/body/*/input[position() > 3]/@value",[<<"Val4">>,<<"Val5">>,<<"Val6">>, "", ""]},
+               {"/html/body/*/input[position() > 3]/@value",[<<"Val4">>,<<"Val5">>,<<"Val6">>]},
                {"/html/body/*/input[@type='hidden']/@value",[<<"Val1">>,<<"Val2">>,<<"Val3">>,<<"Val4">>,<<"Val5">>,<<"Val6">>]},
                {"/html/body/*/input[@type='hidden'][last()]/@value",[<<"Val6">>]},
                {"/html/body/*/input[@type='hidden'][position()>1]/@value",[<<"Val2">>,<<"Val3">>,<<"Val4">>,<<"Val5">>,<<"Val6">>]},
@@ -37,14 +42,44 @@ test_definitions() ->
                {"/html/body/*/input[position() = 3]/@value",[<<"Val3">>]},
                {"count(/html/body/*/input[position() = 3]/preceding-sibling::*)",2},
                {"count(/html/body/*/input[position() = 3]/following-sibling::*)",6},
-               {"/html/body/*/input[position() = 3]/following-sibling::*/@value",[<<"Val4">>,<<"Val5">>,<<"Val6">>, "", "", ""]},
-               {"/html/body/*/input[position() = 3]/following-sibling::input/@value",[<<"Val4">>,<<"Val5">>,<<"Val6">>, "", ""]},
+               {"/html/body/*/input[position() = 3]/following-sibling::*/@value",[<<"Val4">>,<<"Val5">>,<<"Val6">>]},
+               {"/html/body/*/input[position() = 3]/following-sibling::input/@value",[<<"Val4">>,<<"Val5">>,<<"Val6">>]},
                %% test union "|"
                {"/html/head/title/text() | /html/body/h1/text()", [<<"Some Title!!">>, <<"Title">>]}, % not necessary in document order according to spec
                %% test "contains()"
                {"/html/body/div/img[contains(@src, 'broken')]/@src",[<<"some_broken_img_tag">>]},
                %% test "concat()"
-               {"concat(//div[@id='last']/@class, 'txt1', 2)",<<"normaltxt12">>}
+               {"concat(//div[@id='last']/@class, 'txt1', 2)",<<"normaltxt12">>},
+               %% == node tests ==
+               %% wildcard
+               {"count(/html/body/form/*)", 8},
+               {"/html/body/form/@*", [<<"Action">>, <<"POST">>]},
+               %% name
+               {"/html/head/title", [{<<"title">>, [], [<<"Title">>]} ]},
+               {"/html/head/meta/@name", [<<"GENERATOR">>]},
+               %% -- node type --
+               {"count(/html/body/form/node())", 9}, % node()
+               {"/html/body/ul[1]/li/text()", [<<"List item">>, <<"list item2">>]}, % text()
+               %% {"/html/body/form/attribute()", []},  % attribute() - not exists on standard!
+               {"/html/body/comment()", [{comment,<<" some comment ">>}]}, % comment()
+               %% {"/html/body/processing-instruction()", [{pi,<<"php my_processing_instr() ">>}]},  % processing-instriction() not work on my R14B04, but fixed in bffc6b40 Xmerl 1.3
+               {"/html/body/processing-instruction('php')", [{pi,<<"php my_processing_instr() ">>}]},  % processing-instriction()
+               {"/html/body/processing-instruction('erl')", []},  % processing-instriction()
+               %% == axes ==
+               %% -- descendant --
+               {"count(/html/body/ul/descendant::*)", 4},
+               {"/html/body/div[@id='desc_or_self']/descendant::*",
+                fun({Name, _Arttr, _Chld}) -> Name end,
+                [<<"i">>, <<"p">>, <<"span">>, <<"b">>]},
+               %% --descendant-or-self --
+               {"count(/html/body/ul/descendant-or-self::*)", 6},
+               {"/html/body/div[@id='desc_or_self']/descendant-or-self::*",
+                fun({Name, _Arttr, _Chld}) -> Name end,
+                [<<"div">>, <<"i">>, <<"p">>, <<"span">>, <<"b">>]},
+               %% -- attribute --
+               {"/html/body/form/input[1]/attribute::*", [<<"hidden">>, <<"id1">>, <<"Val1">>]},
+               {"/html/body/form/input[1]/attribute::node()", [<<"hidden">>, <<"id1">>, <<"Val1">>]},
+               {"/html/body/form/input[1]/attribute::value", [<<"Val1">>]}
               ]},
       {?HTML2,[
                {"/html/body/div[1]/a[3]/text()",[<<"ssddd">>]},
@@ -112,6 +147,9 @@ do_test({File,Cases},UserFunctions) ->
     Doc = mochiweb_html:parse(DocBin),
     lists:map(fun({Expr,Expected}) ->
                       R = mochiweb_xpath:execute(Expr,Doc,UserFunctions),
+                      { File ++ " " ++ Expr, ?_assertEqual(Expected, R) };
+                 ({Expr, MapResFun, Expected}) ->
+                      R = [MapResFun(E) || E <- mochiweb_xpath:execute(Expr,Doc,UserFunctions)],
                       { File ++ " " ++ Expr, ?_assertEqual(Expected, R) }
               end, Cases).
 

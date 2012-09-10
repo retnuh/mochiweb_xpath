@@ -28,10 +28,11 @@ Xpath coverage
 
 * self
 * child
-* descendant-or-self (partialy)
-* parent
-* following_sibling
-* preceding-sibling
+* descendant-or-self
+* descendant
+* parent (partial)
+* following-sibling (partial)
+* preceding-sibling (partial)
 * attribute
  
 
@@ -52,7 +53,6 @@ Xpath coverage
 
 * ancestor
 * ancestor-or-self
-* descendant
 * following
 * namespace
 * preceding

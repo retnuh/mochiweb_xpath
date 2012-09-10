@@ -50,9 +50,10 @@ simplify_path({refine,Path1,Path2}) ->
 simplify_node_test({name,{Tag,Prefix,Local}}) ->
     {name,{to_binary(Tag),Prefix,Local}};
 
-simplify_node_test(A={node_type,Type}) when Type == 'text' ;
-                                            Type == 'node' ->
+simplify_node_test(A={node_type, _Type}) ->
     A;
+simplify_node_test({processing_instruction, Name}) ->
+    {processing_instruction, list_to_binary(Name)};  % strictly, this must be node_type too!
 simplify_node_test(A={wildcard,wildcard}) ->
     A;
 simplify_node_test({prefix_test, Prefix}) ->
