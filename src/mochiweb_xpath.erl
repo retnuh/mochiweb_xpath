@@ -175,13 +175,16 @@ axis('child', NodeTest, #ctx{ctx=Context}) ->
     [N || {_,_,Children,_} <- Context,
           N <- Children,
           test_node(NodeTest, N, Context)];
-axis('parent', {node_type,node}, #ctx{root=Root, ctx=Context}) ->
-    L = lists:foldl(fun({_,_,_,Position}, Acc) ->
-                ParentPosition = get_parent_position(Position),
-                ParentNode = get_node_at(Root, ParentPosition),
-                [ParentNode | Acc]
+axis('parent', NodeTest, #ctx{root=Root, ctx=Context}) ->
+    L = lists:foldl(
+          fun({_,_,_,Position}, Acc) ->
+                  ParentPosition = get_parent_position(Position),
+                  ParentNode = get_node_at(Root, ParentPosition),
+                  maybe_add_node(ParentNode, NodeTest, Acc, Context);
+             (Smth, _Acc) ->
+                  error({not_implemented, "parent for non-nodes", Smth})
         end, [], Context),
-    lists:reverse(L);
+    ordsets:to_list(ordsets:from_list(lists:reverse(L)));
 axis('ancestor', _Test, _Ctx) ->
     error({not_implemented, "ancestor axis"});
 
