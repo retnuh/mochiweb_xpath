@@ -31,8 +31,8 @@ Xpath coverage
 * descendant-or-self
 * descendant
 * parent (only for elements, not `text()/parent::` or `attribute::*/parent::`)
-* following-sibling (partial)
-* preceding-sibling (partial)
+* following-sibling (same as parent)
+* preceding-sibling (same as parent)
 * attribute
  
 

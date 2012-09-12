@@ -188,36 +188,28 @@ axis('parent', NodeTest, #ctx{root=Root, ctx=Context}) ->
 axis('ancestor', _Test, _Ctx) ->
     error({not_implemented, "ancestor axis"});
 
-axis('following_sibling', {wildcard,wildcard}, #ctx{root=Root, ctx=Context}) ->
-    lists:foldl(fun({_,_,_,Position}, Acc) ->
-                ParentPosition = get_parent_position(Position),
-                MyPosition = get_position_in_parent(Position),
-                {_,_,Children,_} = get_node_at(Root, ParentPosition),
-                Acc ++ lists:sublist(Children, MyPosition+1, length(Children) - MyPosition)
-        end, [], Context);
-axis('following_sibling', {name,{Tag,_,_}}, Ctx=#ctx{ctx=_Context}) ->
-    F = fun ({Tag2,_,_,_}) when Tag2 == Tag -> true;
-             (_) -> false
-        end,
-    Following0 = axis('following_sibling', {wildcard,wildcard}, Ctx),
-    Following1 = lists:filter(F, Following0),
-    Following1;
-
-axis('preceding_sibling', {wildcard,wildcard}, #ctx{root=Root, ctx=Context}) ->
-    lists:foldl(fun({_,_,_,Position}, Acc) ->
-                ParentPosition = get_parent_position(Position),
-                MyPosition = get_position_in_parent(Position),
-                {_,_,Children,_} = get_node_at(Root, ParentPosition),
-                Acc ++ lists:sublist(Children, MyPosition-1)
-        end, [], Context);
-axis('preceding_sibling', {name,{Tag,_,_}}, Ctx=#ctx{ctx=_Context}) ->
-    F = fun ({Tag2,_,_,_}) when Tag2 == Tag -> true;
-             (_) -> false
-        end,
-    Preceding0 = axis('preceding_sibling', {wildcard,wildcard}, Ctx),
-    Preceding1 = lists:filter(F, Preceding0),
-    Preceding1;
-
+axis('following_sibling', NodeTest, #ctx{root=Root, ctx=Context}) ->
+    %% TODO: alerts for non-elements (like for `text()/parent::`)
+    [N || {_,_,_,Position} <- Context,
+          N <- begin
+                   ParentPosition = get_parent_position(Position),
+                   MyPosition = get_position_in_parent(Position),
+                   {_,_,Children,_} = get_node_at(Root, ParentPosition),
+                   lists:sublist(Children,
+                                 MyPosition + 1,
+                                 length(Children) - MyPosition)
+               end,
+          test_node(NodeTest, N, Context)];
+axis('preceding_sibling', NodeTest, #ctx{root=Root, ctx=Context}) ->
+    %% TODO: alerts for non-elements (like for `text()/parent::`)
+    [N || {_,_,_,Position} <- Context,
+          N <- begin
+                   ParentPosition = get_parent_position(Position),
+                   MyPosition = get_position_in_parent(Position),
+                   {_,_,Children,_} = get_node_at(Root, ParentPosition),
+                   lists:sublist(Children, MyPosition - 1)
+               end,
+          test_node(NodeTest, N, Context)];
 axis('following', _Test, _Ctx) ->
     error({not_implemented, "following axis"});
 axis('preceeding', _Test, _Ctx) ->

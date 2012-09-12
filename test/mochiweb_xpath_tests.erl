@@ -40,10 +40,6 @@ test_definitions() ->
                {"name(/html/body/*/input[@type='hidden'][@name=\"id1\"]/../..)",<<"body">>},
                {"name(/html/body/*/input[@type='hidden'][@name=\"id1\"]/../../..)",<<"html">>},
                {"/html/body/*/input[position() = 3]/@value",[<<"Val3">>]},
-               {"count(/html/body/*/input[position() = 3]/preceding-sibling::*)",2},
-               {"count(/html/body/*/input[position() = 3]/following-sibling::*)",6},
-               {"/html/body/*/input[position() = 3]/following-sibling::*/@value",[<<"Val4">>,<<"Val5">>,<<"Val6">>]},
-               {"/html/body/*/input[position() = 3]/following-sibling::input/@value",[<<"Val4">>,<<"Val5">>,<<"Val6">>]},
                %% test union "|"
                {"/html/head/title/text() | /html/body/h1/text()", [<<"Some Title!!">>, <<"Title">>]}, % not necessary in document order according to spec
                %% test "contains()"
@@ -80,6 +76,16 @@ test_definitions() ->
                {"count(/html/body/ul/li/parent::*)", 2},
                %% {"count(/html/body/ul/li/text()/parent::*)", 4},  %%TODO: parent for non-elements
                {"/html/body/form/input/parent::form/@method", [<<"POST">>]},
+               %% -- following-sibling --
+               {"count(/html/body/*/input[position() = 3]/following-sibling::*)",5},
+               {"/html/body/*/input[position() = 3]/following-sibling::input/@value",
+                [<<"Val4">>,<<"Val5">>,<<"Val6">>]},
+               {"/html/body/*/input[position() = 3]/following-sibling::*/@value",
+                [<<"Val4">>,<<"Val5">>,<<"Val6">>]},
+               %% -- preceding-sibling --
+               {"count(/html/body/*/input[position() = 3]/preceding-sibling::*)",2},
+               {"/html/body/*/input[position() = 3]/preceding-sibling::input/@value",
+                [<<"Val1">>, <<"Val2">>]},
                %% -- attribute --
                {"/html/body/form/input[1]/attribute::*", [<<"hidden">>, <<"id1">>, <<"Val1">>]},
                {"/html/body/form/input[1]/attribute::node()", [<<"hidden">>, <<"id1">>, <<"Val1">>]},
