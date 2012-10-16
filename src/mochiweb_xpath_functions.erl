@@ -23,7 +23,9 @@ default_functions() ->
         {'starts-with', fun 'starts-with'/2,[string,string]},
         {'substring', fun substring/2,[string,number,number]},
         {'sum', fun sum/2,[node_set]},
-        {'string-length', fun 'string-length'/2,[string]}
+        {'string-length', fun 'string-length'/2,[string]},
+        {'contains', fun contains/2,[string,string]},
+        {'concat', fun concat/2,[string,string,string]}
     ].
 
 
@@ -85,3 +87,19 @@ sum(_Ctx,[Values]) ->
 %%            in the string, that isn't the same 
 'string-length'(_Ctx,[String]) ->
     size(String).
+
+%% @doc Function: boolean contains(string, string)
+%%      The contains function returns true if the second string is contained
+%%      within the first.
+%%      TODO: not Unicode safe.
+contains(_Ctx,[Haystack,Needle]) ->
+    string:str(binary_to_list(Haystack), binary_to_list(Needle)) /= 0.
+
+%% @doc Function: string concat(string...)
+%%      Returns the concatenation of all given strings.
+concat(_Ctx,Strs) ->
+    lists:foldr(
+        fun(A,B) -> <<A/binary, B/binary>> end,
+        <<>>,
+        Strs
+    ).
