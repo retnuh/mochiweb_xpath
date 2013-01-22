@@ -72,6 +72,9 @@ test_definitions() ->
                {"/html/body/div[@id='desc_or_self']/descendant-or-self::*",
                 fun({Name, _Arttr, _Chld}) -> Name end,
                 [<<"div">>, <<"i">>, <<"p">>, <<"span">>, <<"b">>]},
+               {"/html/body/div[@id='desc_or_self']/descendant-or-self::*/text()",
+                fun(Name) -> re:replace(Name, "(^\\s+)|(\\s+$)", "", [global,{return,list}]) end,
+                ["txt1", "txt2", "txt3", "txt4", "txt5", "txt6", "txt7"]}, %FIXME: Broken
                %% -- parent --
                {"count(/html/body/ul/li/parent::*)", 2},
                %% {"count(/html/body/ul/li/text()/parent::*)", 4},  %%TODO: parent for non-elements
