@@ -38,6 +38,8 @@ lookup_function('sum') ->
     {'sum', fun sum/2,[node_set]};
 lookup_function('string-length') ->
     {'string-length', fun 'string-length'/2,[string]};
+lookup_function('not') ->
+    {'not', fun x_not/2, [boolean]};
 lookup_function(_) ->
     false.
 
@@ -117,3 +119,6 @@ sum(_Ctx,[Values]) ->
 %%            in the string, that isn't the same 
 'string-length'(_Ctx,[String]) ->
     size(String).
+
+x_not(_Ctx, [Bool]) ->
+    not Bool.

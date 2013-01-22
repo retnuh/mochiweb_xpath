@@ -46,6 +46,12 @@ test_definitions() ->
                {"/html/body/div/img[contains(@src, 'broken')]/@src",[<<"some_broken_img_tag">>]},
                %% test "concat()"
                {"concat(//div[@id='last']/@class, 'txt1', 2)",<<"normaltxt12">>},
+               %% rest "not()"
+               {"not(1=2)", true},
+               {"not(1=1)", false},
+               {"not(/html/head/title)", false},
+               {"not(/html/blablabla)", true},
+               {"not('123')", false},
                %% == node tests ==
                %% wildcard
                {"count(/html/body/form/*)", 8},

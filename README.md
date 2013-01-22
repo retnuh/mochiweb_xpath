@@ -1,7 +1,7 @@
 XPath 1.0 interpreter for mochiweb's html tree
 See src/test.erl for examples
 
-Usage
+Build
 -----
 
     make
@@ -13,6 +13,12 @@ API
     mochiweb_xpath:execute/2
 	mochiweb_xpath:execute/3
     mochiweb_xpath:compile_xpath/1
+
+Usage
+-----
+
+    Tree = mochiweb_html:parse(<<"some html">>),
+    Results = mochiweb_xpath:execute("/some/xpath", Tree).
 
 Note
 ----
@@ -48,6 +54,7 @@ Xpath coverage
 * substring
 * sum
 * string-length
+* not
 
 ### TODO axes
 
@@ -68,7 +75,6 @@ Xpath coverage
 * normalize-space
 * translate
 * boolean
-* not
 * true
 * false
 * lang

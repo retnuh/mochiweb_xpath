@@ -83,4 +83,6 @@ convert(Value,number) ->
 convert(Value,string) ->
     string_value(Value);
 convert(Value,node_set) ->
-    node_set_value(Value).
+    node_set_value(Value);
+convert(Value, boolean) ->
+    boolean_value(Value).
