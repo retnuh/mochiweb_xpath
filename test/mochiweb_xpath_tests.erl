@@ -77,9 +77,11 @@ test_definitions() ->
                 fun(Name) -> re:replace(Name, "(^\\s+)|(\\s+$)", "", [global,{return,list}]) end,
                 ["txt1", "txt2", "txt3", "txt4", "txt5", "txt6", "txt7"]},
 %%
-%% preorder_text({_El, _At, Childs}) ->
+%% preorder_text(El) ->
+%%     iolist_to_binary(preorder_text1(El)).
+%% preorder_text1({_El, _At, Childs}) ->
 %%     [preorder_text(Child) || Child <- Childs];
-%% preorder_text(Binary) ->
+%% preorder_text1(Binary) ->
 %%     Binary.
 %%
 %% /FIXME
