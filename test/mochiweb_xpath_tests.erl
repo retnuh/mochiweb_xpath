@@ -52,6 +52,9 @@ test_definitions() ->
                {"not(/html/head/title)", false},
                {"not(/html/blablabla)", true},
                {"not('123')", false},
+               %% test negative
+               {"-1", [-1]},
+               {"-count(/html/*)", [-2]},
                %% == node tests ==
                %% wildcard
                {"count(/html/body/form/*)", 8},

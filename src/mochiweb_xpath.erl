@@ -167,6 +167,9 @@ eval_primary_expr({literal,L},_Ctx) ->
     [L];
 eval_primary_expr({number,N},_Ctx) ->
     [N];
+eval_primary_expr({negative, A}, Ctx) ->
+    R = execute_expr(A, Ctx),
+    [-mochiweb_xpath_utils:number_value(R)];
 eval_primary_expr({function_call, Fun, Args}, Ctx=#ctx{functions=Funs}) ->
     %% TODO: refactor double-case
     case mochiweb_xpath_functions:lookup_function(Fun) of

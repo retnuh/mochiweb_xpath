@@ -30,7 +30,7 @@ simplify({literal,L}) ->
 simplify({number,N}) ->
     {number,N};
 simplify({negative, Smth}) ->
-    {negative, Smth};
+    {negative, simplify(Smth)};
 simplify({bool, Comp, A, B}) ->
     {bool, Comp, simplify(A), simplify(B)};
 simplify({function_call,Fun,Args}) ->
