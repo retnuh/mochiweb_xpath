@@ -11,7 +11,7 @@
         boolean_value/1,
         convert/2]).
 
-
+-spec string_value(mochiweb_xpath:xpath_return()) -> binary().
 string_value(N) when is_list(N)->
     case N of
         [X|_] -> string_value(X);
@@ -37,11 +37,13 @@ string_value(Expr) ->
 	%% string_value(mochiweb_xpath:execute_expr(Expr, Ctx)).
 	throw({not_implemented, "String from expression", Expr}).
 
+-spec node_set_value(mochiweb_xpath:xpath_return()) -> [mochiweb_xpath:html_node()].
 node_set_value(List) when is_list(List) ->
     List;
 node_set_value(N) ->
     throw({node_set_expected,N}).
 
+-spec number_value(mochiweb_xpath:xpath_return() | binary()) -> number().
 number_value(N) when is_integer(N) or is_float(N) ->
     N;
 number_value({number, N}) when is_integer(N) or is_float(N) ->
@@ -59,6 +61,7 @@ number_value(N) when is_binary(N)->
 number_value(N) ->
     number_value(string_value(N)).
 
+-spec boolean_value(mochiweb_xpath:xpath_return()) -> boolean().
 boolean_value([]) ->
     false;
 boolean_value([_|_]) ->
@@ -73,7 +76,6 @@ boolean_value({_, _, _Contents, _}) ->
     true;  % TODO: rly?
 boolean_value(_Expr) ->
     throw({not_implemented, "Boolean from expression"}).
-
 
 
 

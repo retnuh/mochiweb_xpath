@@ -6,6 +6,7 @@
 
 -export([lookup_function/1]).
 
+
 %% Default functions.
 %% The format is: {FunctionName, fun(), FunctionSignature}
 %% WildCard argspec must be the last spec in list.
@@ -17,7 +18,8 @@
 %% @type XPathType = node_set | string | number | boolean
 %% 
 %% The engine is responsable of calling the function with
-%% the correct arguments, given the function signature. 
+%% the correct arguments, given the function signature.
+-spec lookup_function(atom()) -> mochiweb_xpath:xpath_fun_spec() | false.
 lookup_function('last') ->
     {'last',fun last/2,[]};
 lookup_function('position') ->

@@ -8,20 +8,62 @@
 
 -export([execute/2,execute/3,compile_xpath/1]).
 
+-export_type([xpath_return/0, html_node/0]).
+-export_type([xpath_fun_spec/0, xpath_fun/0, xpath_func_argspec/0,
+              xpath_func_context/0]).
+
+
 %internal data
 -record(ctx, {
-        root,
-        ctx,
-        functions,
-        position,
-        size
+        root :: indexed_html_node(),
+        ctx :: [indexed_html_node()],
+        functions :: [xpath_fun_spec()],
+        position :: integer(),
+        size :: integer()
     }).
+
+%% HTML tree specs
+-type html_comment() :: {comment, binary()}.
+%% -type html_doctype() :: {doctype, [binary()]}.
+-type html_pi() :: {pi, binary(), binary()} | {pi, binary()}.
+-type html_attr() :: {binary(), binary()}.
+-type html_node() :: {binary(), [html_attr()], [html_node()
+                                                | binary()
+                                                | html_comment()
+                                                | html_pi()]}.
+
+-type indexed_html_node() ::
+        {binary(),
+         [html_attr()],
+         [indexed_html_node()
+          | binary()
+          | html_comment()
+          | html_pi()],
+         [non_neg_integer()]}.
+
+%% XPath return results specs
+-type xpath_return_item() :: boolean() | number() | binary() | html_node().
+-type xpath_return() :: boolean() | number() | [xpath_return_item()].
+
+-type compiled_xpath() :: tuple().
+
+%% XPath functions specs
+-type xpath_func_context() :: #ctx{}.
+
+-type xpath_type() :: node_set | string | number | boolean.
+-type xpath_func_argspec() :: [xpath_type() | {'*', xpath_type()}].
+-type xpath_fun() ::
+        fun((FuncCtx :: xpath_func_context(),
+             FuncArgs :: xpath_return()) ->
+                   FuncReturn :: xpath_return()).
+-type xpath_fun_spec() :: {atom(), xpath_fun(), xpath_func_argspec()}.
+
 
 %%
 %% API
 %%
 
-%% @spec( string() ) -> compiled_xpath()
+-spec compile_xpath( string() ) -> compiled_xpath().
 compile_xpath(Expr) ->
     mochiweb_xpath_parser:compile_xpath(Expr).
     
@@ -31,6 +73,11 @@ compile_xpath(Expr) ->
 %% @type XPath =  compiled_xpath() | string()
 %% @type Doc = node()
 %% @type Results = [node()] | binary() | boolean() | number()
+-spec execute(XPath, Doc) -> Results
+                                 when
+      XPath :: compiled_xpath() | string(),
+      Doc :: html_node(),
+      Results :: xpath_return().
 execute(XPath,Root) ->
     execute(XPath,Root,[]).
 
@@ -54,12 +101,18 @@ execute(XPath,Root) ->
 %%       compiled expression would have all its functions 
 %%       resolved, and no function lookup would occur when
 %%       the expression is executed
+-spec execute(XPath, Doc, Functions) -> Result
+                                            when
+      XPath :: string() | compiled_xpath(),
+      Doc :: html_node(),
+      Functions :: [xpath_fun_spec()],
+      Result :: xpath_return().
 execute(XPathString,Doc,Functions) when is_list(XPathString) ->
     XPath = mochiweb_xpath_parser:compile_xpath(XPathString),
     execute(XPath,Doc,Functions);
 
 execute(XPath,Doc,Functions) ->    
-    R0 = {root,none,[Doc]},
+    R0 = {<<0>>,[],[Doc]},
     %% TODO: set parent instead of positions list, or some lazy-positioning?
     R1 = add_positions(R0),
     Result = execute_expr(XPath,#ctx{ctx=[R1],
@@ -253,6 +306,7 @@ test_node({prefix_test, Prefix}, {AttrName, _}, _Ctx) ->
 test_node({name, {Tag, _, _}}, {Tag, _, _, _}, _Ctx) ->
     true;
 test_node({name, {AttrName, _, _}}, {AttrName, _}, _Ctx) ->
+    %% XXX: check this!
     true;
 test_node({node_type, text}, Text, _Ctx) when is_binary(Text) ->
     true;
@@ -354,6 +408,7 @@ comp(CompFun,L,R) when is_list(R) ->
 comp(CompFun,L,R) ->
     CompFun(L,R).
 
+-spec comp_fun(atom()) -> fun((xpath_return(), xpath_return()) -> boolean()).
 comp_fun('=') -> 
     fun 
         (A,B) when is_number(A) -> A == mochiweb_xpath_utils:number_value(B);
@@ -404,7 +459,7 @@ bool_fun('or') ->
 %%
 %% Arithmetic functions
 %%
-
+-spec arith(atom(), xpath_return(), xpath_return()) -> number().
 arith('+', Arg1, Arg2) ->
     mochiweb_xpath_utils:number_value(Arg1)
 		+ mochiweb_xpath_utils:number_value(Arg2);
@@ -428,6 +483,7 @@ arith('mod', Arg1, Arg2) ->
 %% @doc Add a position to each node
 %% @spec add_positions(Doc) -> ExtendedDoc
 %% @type ExtendedDoc = {atom(), [{binary(), any()}], [extended_node()], [non_neg_integer()]}
+-spec add_positions(html_node()) -> indexed_html_node().
 add_positions(Node) ->
     R = add_positions_aux(Node, []),
     R.
@@ -444,6 +500,8 @@ add_positions_aux(Data, _) ->
 %% @doc Remove position from each node
 %% @spec remove_positions(ExtendedDoc) -> Doc
 %% @type ExtendedDoc = {atom(), [{binary(), any()}], [extended_node()], [non_neg_integer()]}
+-spec remove_positions([indexed_html_node()]) -> [html_node()];
+                      (indexed_html_node()) -> html_node().
 remove_positions(Nodes) when is_list(Nodes) ->
     [ remove_positions(SubNode) || SubNode <- Nodes ];
 remove_positions({Tag, Attrs, Children, _}) ->
