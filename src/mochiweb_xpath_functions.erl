@@ -45,7 +45,7 @@ count(_Ctx,[NodeList]) ->
     length(NodeList).
 
 %% @doc Function: string name(node-set?)
-'name'(_Ctx,[[{Tag,_,_}|_]]) ->
+'name'(_Ctx,[[{Tag,_,_,_}|_]]) ->
     Tag.
 
 %% @doc Function: boolean starts-with(string, string) 
@@ -96,11 +96,12 @@ sum(_Ctx,[Values]) ->
 %%       Note: this differs from normal xpath in that it returns a list of strings, one
 %%       for each node in the node set, as opposed to just the first node.
 'string'(_Ctx, [NodeList]) ->
-    lists:map(fun({_Elem, _Attr, Children}) -> concat_child_text(Children, []) end, NodeList).
+    io:format("string:NodeList ~p~n",[NodeList]),
+    lists:map(fun({_Elem, _Attr, Children,_Pos}) -> concat_child_text(Children, []) end, NodeList).
 
 concat_child_text([], Result) ->
     list_to_binary(lists:reverse(Result));
-concat_child_text([{_,_,Children} | Rest], Result) ->
+concat_child_text([{_,_,Children,_} | Rest], Result) ->
     concat_child_text(Rest, [concat_child_text(Children, []) | Result]);
 concat_child_text([X | Rest], Result) ->
     concat_child_text(Rest, [X | Result]).
