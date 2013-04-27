@@ -23,7 +23,8 @@ default_functions() ->
         {'starts-with', fun 'starts-with'/2,[string,string]},
         {'substring', fun substring/2,[string,number,number]},
         {'sum', fun sum/2,[node_set]},
-        {'string-length', fun 'string-length'/2,[string]}
+        {'string-length', fun 'string-length'/2,[string]},
+        {'string', fun 'string'/2,[node_set]}
     ].
 
 
@@ -85,3 +86,21 @@ sum(_Ctx,[Values]) ->
 %%            in the string, that isn't the same 
 'string-length'(_Ctx,[String]) ->
     size(String).
+
+%%  @doc Function: string string(node_set)
+%%
+%%       The sum function returns the string representation of the
+%%       nodes in a node-set. This is different from text() in that
+%%       it concatenates each bit of the text in the node along with the text in
+%%       any children nodes along the way, in order.
+%%       Note: this differs from normal xpath in that it returns a list of strings, one
+%%       for each node in the node set, as opposed to just the first node.
+'string'(_Ctx, [NodeList]) ->
+    lists:map(fun({_Elem, _Attr, Children}) -> concat_child_text(Children, []) end, NodeList).
+
+concat_child_text([], Result) ->
+    list_to_binary(lists:reverse(Result));
+concat_child_text([{_,_,Children} | Rest], Result) ->
+    concat_child_text(Rest, [concat_child_text(Children, []) | Result]);
+concat_child_text([X | Rest], Result) ->
+    concat_child_text(Rest, [X | Result]).
