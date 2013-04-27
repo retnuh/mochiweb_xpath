@@ -96,7 +96,6 @@ sum(_Ctx,[Values]) ->
 %%       Note: this differs from normal xpath in that it returns a list of strings, one
 %%       for each node in the node set, as opposed to just the first node.
 'string'(_Ctx, [NodeList]) ->
-    io:format("string:NodeList ~p~n",[NodeList]),
     lists:map(fun({_Elem, _Attr, Children,_Pos}) -> concat_child_text(Children, []) end, NodeList).
 
 concat_child_text([], Result) ->
