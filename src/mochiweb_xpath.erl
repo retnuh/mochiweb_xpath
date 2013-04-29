@@ -12,6 +12,7 @@
 -export_type([xpath_fun_spec/0, xpath_fun/0, xpath_func_argspec/0,
               xpath_func_context/0]).
 
+-export_type([indexed_xpath_return/0, indexed_html_node/0]). % internal!!!
 
 %internal data
 -record(ctx, {
@@ -45,6 +46,9 @@
 -type xpath_return_item() :: boolean() | number() | binary() | html_node().
 -type xpath_return() :: boolean() | number() | [xpath_return_item()].
 
+-type indexed_return_item() :: boolean() | number() | binary() | indexed_html_node().
+-type indexed_xpath_return() :: boolean() | number() | [indexed_return_item()].
+
 -type compiled_xpath() :: tuple().
 
 %% XPath functions specs
@@ -54,8 +58,8 @@
 -type xpath_func_argspec() :: [xpath_type() | {'*', xpath_type()}].
 -type xpath_fun() ::
         fun((FuncCtx :: xpath_func_context(),
-             FuncArgs :: xpath_return()) ->
-                   FuncReturn :: xpath_return()).
+             FuncArgs :: indexed_xpath_return()) ->
+                   FuncReturn :: indexed_xpath_return()).
 -type xpath_fun_spec() :: {atom(), xpath_fun(), xpath_func_argspec()}.
 
 
@@ -411,7 +415,7 @@ comp(CompFun,L,R) when is_list(R) ->
 comp(CompFun,L,R) ->
     CompFun(L,R).
 
--spec comp_fun(atom()) -> fun((xpath_return(), xpath_return()) -> boolean()).
+-spec comp_fun(atom()) -> fun((indexed_xpath_return(), indexed_xpath_return()) -> boolean()).
 comp_fun('=') -> 
     fun 
         (A,B) when is_number(A) -> A == mochiweb_xpath_utils:number_value(B);
@@ -462,7 +466,7 @@ bool_fun('or') ->
 %%
 %% Arithmetic functions
 %%
--spec arith(atom(), xpath_return(), xpath_return()) -> number().
+-spec arith(atom(), indexed_xpath_return(), indexed_xpath_return()) -> number().
 arith('+', Arg1, Arg2) ->
     mochiweb_xpath_utils:number_value(Arg1)
 		+ mochiweb_xpath_utils:number_value(Arg2);
@@ -503,8 +507,7 @@ add_positions_aux(Data, _) ->
 %% @doc Remove position from each node
 %% @spec remove_positions(ExtendedDoc) -> Doc
 %% @type ExtendedDoc = {atom(), [{binary(), any()}], [extended_node()], [non_neg_integer()]}
--spec remove_positions([indexed_html_node()]) -> [html_node()];
-                      (indexed_html_node()) -> html_node().
+-spec remove_positions(indexed_xpath_return()) -> xpath_return().
 remove_positions(Nodes) when is_list(Nodes) ->
     [ remove_positions(SubNode) || SubNode <- Nodes ];
 remove_positions({Tag, Attrs, Children, _}) ->
