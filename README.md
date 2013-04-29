@@ -1,4 +1,5 @@
-XPath 1.0 interpreter for mochiweb's html tree
+[XPath 1.0](http://www.w3.org/TR/xpath/) interpreter for
+[mochiweb's html tree](https://github.com/mochi/mochiweb/blob/master/src/mochiweb_html.erl)
 See src/test.erl for examples
 
 Build
