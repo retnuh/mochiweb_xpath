@@ -4,31 +4,48 @@
 %% created on 2008-05-07
 -module(mochiweb_xpath_functions).
 
--export([default_functions/0]).
+-export([lookup_function/1]).
+
 
 %% Default functions.
 %% The format is: {FunctionName, fun(), FunctionSignature}
+%% WildCard argspec must be the last spec in list.
+%%
 %% @type FunctionName = atom()
-%% @type FunctionSignature = [XPathType]
+%% @type FunctionSignature = [XPathArgSpec]
+%% @type XPathArgSpec = XPathType | WildCardArgSpec
+%% @type WildCardArgSpec = {'*', XPathType}
 %% @type XPathType = node_set | string | number | boolean
 %% 
 %% The engine is responsable of calling the function with
 %% the correct arguments, given the function signature. 
-default_functions() ->
-    [
-        {'last',fun last/2,[]},
-        {'position',fun position/2,[]},
-        {'count',fun count/2,[node_set]},
-        {'name',fun 'name'/2,[node_set]},
-        {'starts-with', fun 'starts-with'/2,[string,string]},
-        {'substring', fun substring/2,[string,number,number]},
-        {'sum', fun sum/2,[node_set]},
-        {'string-length', fun 'string-length'/2,[string]},
-        {'string', fun 'string'/2,[node_set]},
-        {'contains', fun contains/2,[string,string]},
-        {'concat', fun concat/2,[string,string,string]}
-    ].
-
+-spec lookup_function(atom()) -> mochiweb_xpath:xpath_fun_spec() | false.
+lookup_function('last') ->
+    {'last',fun last/2,[]};
+lookup_function('position') ->
+    {'position',fun position/2,[]};
+lookup_function('count') ->
+    {'count',fun count/2,[node_set]};
+lookup_function('concat') ->
+    {'concat',fun concat/2,[{'*', string}]};
+lookup_function('name') ->
+    {'name',fun 'name'/2,[node_set]};
+lookup_function('starts-with') ->
+    {'starts-with', fun 'starts-with'/2,[string,string]};
+lookup_function('contains') ->
+    {'contains', fun 'contains'/2,[string,string]};
+lookup_function('substring') ->
+    {'substring', fun substring/2,[string,number,number]};
+lookup_function('sum') ->
+    {'sum', fun sum/2,[node_set]};
+lookup_function('string-length') ->
+    {'string-length', fun 'string-length'/2,[string]};
+lookup_function('not') ->
+    {'not', fun x_not/2, [boolean]};
+lookup_function('string') ->
+    {'string', fun 'string'/2, [node_set]};
+lookup_function(_) ->
+    false.
 
 %% @doc Function: boolean last() 
 %%      The position function returns the position of the current node
@@ -46,6 +63,12 @@ position({ctx, _, _, _, Position, _} = _Ctx, []) ->
 count(_Ctx,[NodeList]) ->
     length(NodeList).
 
+%% @doc Function: concat(binary, binary, ...)
+%%      Concatenate string arguments (variable length)
+concat(_Ctx, BinariesList) ->
+    %% list_to_binary()
+    << <<Str/binary>> || Str <- BinariesList>>.
+
 %% @doc Function: string name(node-set?)
 'name'(_Ctx,[[{Tag,_,_,_}|_]]) ->
     Tag.
@@ -58,6 +81,15 @@ count(_Ctx,[NodeList]) ->
     case Left of
         <<Right:Size/binary,_/binary>> -> true;
         _ -> false
+    end.
+
+%% @doc Function: checks that Where contains What
+contains(_Ctx,[Where, What]) ->
+    case binary:match(Where, [What]) of
+        nomatch ->
+            false;
+        {_, _} ->
+            true
     end.
 
 %% @doc Function: string substring(string, number, number?) 
@@ -80,7 +112,7 @@ substring(_Ctx,[String,Start,Length]) when is_binary(String)->
 %%      node-set, of the result of converting the string-values of the node
 %%      to a number.
 sum(_Ctx,[Values]) ->
-    lists:sum(lists:map(fun  mochiweb_xpath_utils:number_value/1,Values)).
+    lists:sum([mochiweb_xpath_utils:number_value(V) || V <- Values]).
 
 %% @doc Function: number string-length(string?) 
 %%      The string-length returns the number of characters in the string 
@@ -107,20 +139,5 @@ concat_child_text([{_,_,Children,_} | Rest], Result) ->
 concat_child_text([X | Rest], Result) ->
     concat_child_text(Rest, [X | Result]).
 
-
-%% @doc Function: boolean contains(string, string)
-%%      The contains function returns true if the second string is contained
-%%      within the first.
-%%      TODO: not Unicode safe.
-contains(_Ctx,[Haystack,Needle]) ->
-    string:str(binary_to_list(Haystack), binary_to_list(Needle)) /= 0.
-
-%% @doc Function: string concat(string...)
-%%      Returns the concatenation of all given strings.
-concat(_Ctx,Strs) ->
-    lists:foldr(
-        fun(A,B) -> <<A/binary, B/binary>> end,
-        <<>>,
-        Strs
-    ).
-
+x_not(_Ctx, [Bool]) ->
+    not Bool.

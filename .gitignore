@@ -2,3 +2,4 @@
 deps/
 .eunit/
 ebin/*app
+.dialyzer_plt
