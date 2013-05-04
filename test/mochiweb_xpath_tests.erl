@@ -28,7 +28,7 @@ test_definitions() ->
                {"/html/head/meta[2]/@content",[<<"text/html; charset=utf-8">>]},
                {"/html/body/div[@id='first']/@class",[<<"normal">>]},
                % A bug in xmerl_xpath_scan means concat(' ', @class, ' ') fails to tokenise.
-               {"/html/body/div[contains(concat(' ', (@class), ' '), ' cd ')]/text()", [<<"oh no">>]},
+               {"/html/body/div[contains(concat(' ', @class, ' '), ' cd ')]/text()", [<<"oh no">>]},
                {"/html/body/form/input[@name='id3']/@value",[<<"Val3">>]},
                {"/html/body/*/input[@name='id3']/@value",[<<"Val3">>]},
                {"/html/head/title/text() = 'Title'",true},
