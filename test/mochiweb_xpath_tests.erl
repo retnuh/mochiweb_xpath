@@ -36,7 +36,7 @@ test_definitions() ->
                {"/html/body/*/input[position() = 3]/@value",[<<"Val3">>]},
                {"/html/body/*/input[position() > 3]/@value",[<<"Val4">>,<<"Val5">>,<<"Val6">>]},
                {"/html/body/*/input[@type='hidden']/@value",[<<"Val1">>,<<"Val2">>,<<"Val3">>,<<"Val4">>,<<"Val5">>,<<"Val6">>]},
-               {"/html/body/*/input[@type='hidden'][last()]/@value",[<<"Val6">>]},
+               {"/html/body/*/input[@type='hidden'][position() = last()]/@value",[<<"Val6">>]},
                {"/html/body/*/input[@type='hidden'][position()>1]/@value",[<<"Val2">>,<<"Val3">>,<<"Val4">>,<<"Val5">>,<<"Val6">>]},
 
                {"string(//div[@class='normal']/cite)",[<<"one-two-three-(nested-[deeply-four-done]-done)-five">>, <<"other stuff">>]},
