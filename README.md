@@ -49,6 +49,7 @@ Xpath coverage
 * position
 * count
 * concat
+* ends-with
 * name
 * starts-with
 * contains
