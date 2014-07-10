@@ -26,7 +26,7 @@ simplify({path,Type,Path}) ->
 simplify({comp,Comp,A,B}) ->
     {comp,Comp,simplify(A),simplify(B)};
 simplify({literal,L}) ->
-    {literal,list_to_binary(L)};
+    {literal,unicode:characters_to_binary(L)};
 simplify({number,N}) ->
     {number,N};
 simplify({negative, Smth}) ->
@@ -53,7 +53,7 @@ simplify_node_test({name,{Tag,Prefix,Local}}) ->
 simplify_node_test(A={node_type, _Type}) ->
     A;
 simplify_node_test({processing_instruction, Name}) ->
-    {processing_instruction, list_to_binary(Name)};  % strictly, this must be node_type too!
+    {processing_instruction, unicode:characters_to_binary(Name)};  % strictly, this must be node_type too!
 simplify_node_test(A={wildcard,wildcard}) ->
     A;
 simplify_node_test({prefix_test, Prefix}) ->
