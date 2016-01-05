@@ -1,3 +1,4 @@
+%% coding: utf-8
 %% 
 %% @author Pablo Polvorin 
 %% @author Hunter Kelly.
@@ -183,6 +184,17 @@ all_test_() ->
 
     lists:map(fun(Def) -> do_test(Def,MyFuns) end, test_definitions()).
 
+
+unicode_test() ->
+    {ok,DocBin} = file:read_file(filename:join(?HTMLDIR, ?HTML1)),
+    Doc = mochiweb_html:parse(DocBin),
+    ?assertEqual([<<"unicode-class">>],
+                 mochiweb_xpath:execute("/html/body/div[@class='юникод']/text()", Doc)),
+    mochiweb_xpath:compile_xpath("/html/body/processing-instruction('юникод')").
+    %% Unfortunately, unicode in processing instructions doesn't work in mochiweb_html, so
+    %% following test doesn't work.
+    %% ?assertEqual([<<"unicode-pi">>],
+    %%              mochiweb_xpath:execute("/html/body/processing-instruction('юникод')", Doc)).
 
 do_test({File,Cases},UserFunctions) ->
     {ok,DocBin} = file:read_file(filename:join(?HTMLDIR, File)),
