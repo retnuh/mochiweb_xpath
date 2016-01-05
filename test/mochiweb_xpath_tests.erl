@@ -39,6 +39,10 @@ test_definitions() ->
                {"/html/body/*/input[@type='hidden'][position() = last()]/@value",[<<"Val6">>]},
                {"/html/body/*/input[@type='hidden'][position()>1]/@value",[<<"Val2">>,<<"Val3">>,<<"Val4">>,<<"Val5">>,<<"Val6">>]},
 
+               % testing the abbreviated syntax to access indexed
+               {"count(/html/body/form[position()]/*)", 8},
+               {"/html/body/*/input[3 + 0]/@value",[<<"Val3">>]},
+
                {"string(//div[@class='normal']/cite)",[<<"one-two-three-(nested-[deeply-four-done]-done)-five">>, <<"other stuff">>]},
                {"name(/html/body/*/input[@type='hidden'][@name=\"id1\"]/..)",<<"form">>},
                {"name(/html/body/*/input[@type='hidden'][@name=\"id1\"]/../..)",<<"body">>},

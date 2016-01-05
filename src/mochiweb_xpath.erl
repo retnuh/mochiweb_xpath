@@ -383,11 +383,12 @@ apply_predicates(Predicates,NodeList,Ctx) ->
 apply_predicate({number,N}, NodeList, _Ctx) when length(NodeList) >= N ->
     [lists:nth(N,NodeList)];
 
-apply_predicate(Pred, NodeList,Ctx) ->
+apply_predicate(Pred, NodeList, OldCtx) ->
     Size = length(NodeList),
     Filter = fun(Node, {AccPosition, AccNodes0}) ->
-            Predicate = mochiweb_xpath_utils:boolean_value(
-                execute_expr(Pred,Ctx#ctx{ctx=[Node], position=AccPosition, size = Size})),
+            Ctx = OldCtx#ctx{ctx=[Node], position=AccPosition, size = Size},
+            PredResult = execute_expr(Pred, Ctx),
+            Predicate = handle_predicate_result(PredResult, Ctx),
             AccNodes1 = if Predicate -> [Node|AccNodes0];
                 true -> AccNodes0
             end,
@@ -396,6 +397,11 @@ apply_predicate(Pred, NodeList,Ctx) ->
     {_, L} = lists:foldl(Filter,{1,[]},NodeList),
     lists:reverse(L).
 
+handle_predicate_result(PredicateResult, Ctx) when is_number(PredicateResult) ->
+    %% Support for abbreviated syntax to access indexed
+    PredicateResult =:= Ctx#ctx.position;
+handle_predicate_result(PredicateResult, _) ->
+    mochiweb_xpath_utils:boolean_value(PredicateResult).
 
 %%
 %% Compare functions
