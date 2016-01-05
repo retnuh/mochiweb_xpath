@@ -148,7 +148,7 @@ eval_path(abs, Path ,Ctx = #ctx{root=Root}) ->
 eval_path(rel, Path, Ctx) ->
     do_path_expr(Path, Ctx);
 eval_path(filter, {_PathExpr, {pred, _Pred}}, _C) ->
-    error({not_implemented, "filter"}).      % Who needs them?
+    erlang:error({not_implemented, "filter"}).      % Who needs them?
 
 
 eval_primary_expr({comp,Comp,A,B},Ctx) ->
@@ -242,11 +242,11 @@ axis('parent', NodeTest, #ctx{root=Root, ctx=Context}) ->
                   ParentNode = get_node_at(Root, ParentPosition),
                   maybe_add_node(ParentNode, NodeTest, Acc, Context);
              (Smth, _Acc) ->
-                  error({not_implemented, "parent for non-nodes", Smth})
+                  erlang:error({not_implemented, "parent for non-nodes", Smth})
         end, [], Context),
     ordsets:to_list(ordsets:from_list(lists:reverse(L)));
 axis('ancestor', _Test, _Ctx) ->
-    error({not_implemented, "ancestor axis"});
+    erlang:error({not_implemented, "ancestor axis"});
 
 axis('following_sibling', NodeTest, #ctx{root=Root, ctx=Context}) ->
     %% TODO: alerts for non-elements (like for `text()/parent::`)
@@ -271,9 +271,9 @@ axis('preceding_sibling', NodeTest, #ctx{root=Root, ctx=Context}) ->
                end,
           test_node(NodeTest, N, Context)];
 axis('following', _Test, _Ctx) ->
-    error({not_implemented, "following axis"});
+    erlang:error({not_implemented, "following axis"});
 axis('preceeding', _Test, _Ctx) ->
-    error({not_implemented, "preceeding axis"});
+    erlang:error({not_implemented, "preceeding axis"});
 
 axis('attribute', NodeTest, #ctx{ctx=Context}) ->
     %% Flat list of *attribute values* of Context, that pass NodeTest
@@ -283,9 +283,9 @@ axis('attribute', NodeTest, #ctx{ctx=Context}) ->
           {_Name, Value} = A <- Attributes,
           test_node(NodeTest, A, Context)];
 axis('namespace', _Test, _Ctx) ->
-    error({not_implemented, "namespace axis"});
+    erlang:error({not_implemented, "namespace axis"});
 axis('ancestor_or_self', _Test, _Ctx) ->
-    error({not_implemented, "ancestor-or-self axis"}).
+    erlang:error({not_implemented, "ancestor-or-self axis"}).
 
 
 descendant_or_self(Nodes, NodeTest, Acc, Ctx) ->
