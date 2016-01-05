@@ -47,10 +47,10 @@ lookup_function('string') ->
 lookup_function(_) ->
     false.
 
-%% @doc Function: boolean last() 
-%%      The position function returns the position of the current node
-last({ctx, _, _, _, Position, Size} = _Ctx, []) ->
-    Position =:= Size.
+%% @doc Function: int last() 
+%%      The last function returns the context size of the current node
+last({ctx, _, _, _, _, Size} = _Ctx, []) ->
+    Size.
 
 %% @doc Function: number position() 
 %%      The position function returns the position of the current node
